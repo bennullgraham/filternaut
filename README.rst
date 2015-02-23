@@ -1,5 +1,5 @@
 Filternaut
-==========
+**********
 
 Filternaut generates arbitrarily complex Q-objects from simple data. It fits
 nicely into situations where users provide data which you want to filter your
@@ -16,7 +16,7 @@ lead to unexpected join behaviour. Filternaut does not suffer this problem, and
 can better model the relationships between filters.
 
 Quickstart
-----------
+==========
 
 .. code-block:: python
 
@@ -36,7 +36,7 @@ Quickstart
 
 
 Installation
-------------
+============
 
 .. code-block:: console
 
@@ -49,56 +49,74 @@ Filternaut is compatible with:
 - Django REST Framework 2.4 and 3.0 (optional)
 
 Examples
---------
+========
 
-1. Using a simple filter
+Using a simple filter
+---------------------
 
-   Here Filternaut pulls a username from ``user_data`` and filters a User
-   queryset with it. Filternaut is overkill for such a simple job, but hey,
-   it's the first example.
+Here Filternaut pulls a username from ``user_data`` and filters a User queryset
+with it. Filternaut is overkill for such a simple job, but hey, it's the first
+example.
 
-  .. code-block:: python
+.. code-block:: python
 
-    >>> from filternaut import Filter
-    >>>
-    >>> user_data = {'username': 'nostromo'}
-    >>> filters = Filter('username')
-    >>> filters.parse(user_data)
-    >>> User.objects.filter(filters.Q).query.__str__()
-    u'SELECT "auth_user"."id", ... WHERE "auth_user"."username" = nostromo'
+   >>> from filternaut import Filter
+   >>>
+   >>> user_data = {'username': 'nostromo'}
+   >>> filters = Filter('username')
+   >>> filters.parse(user_data)
+   >>> User.objects.filter(filters.Q).query.__str__()
+   u'SELECT "auth_user"."id", ... WHERE "auth_user"."username" = nostromo'
 
-2. Combining several filters
+Using lookups
+-------------
 
-   Now Filternaut is used to filter Users with either an email, a username, or
-   a (first name, last name) pair.
+It's common to require comparisons such as greater than, less than, etc.
+against one field. You can provide a ``lookups`` argument to specify these.
 
-  .. code-block:: python
+.. code-block:: python
 
-    >>> from filternaut import Filter
-    >>>
-    >>> user_data = {'email': 'user3@example.org', 'username': 'user3'}
-    >>> filters = (
-    ...     Filter('email') |
-    ...     Filter('username') |
-    ...     (Filter('first_name') & Filter('last_name')))
-    >>> filters.parse(user_data)
-    >>> User.objects.filter(filters.Q).query.__str__()
-    u'SELECT "auth_user"."id", ... WHERE ("auth_user"."email" = user3@example.org OR "auth_user"."username" = user3)'
+   >>> from filternaut.filters import Filter
+   >>>
+   >>> filters = Filter('username', lookups=['icontains', 'contains'])
+   >>> filters.parse({'username__icontains': 'nostromo'})
+   >>> User.objects.filter(filters.Q).query.__str__()
+   u'SELECT "auth_user"."id", ... WHERE "auth_user"."username" LIKE %nostromo%...
 
-    >>> # the same filters behave differently with different input data.
-    >>> user_data = {'first_name': 'Art', 'last_name': 'Vandelay'}
-    >>> filters.parse(user_data)
-    >>> User.objects.filter(filters.Q).query.__str__()
-    u'SELECT "auth_user"."id", ... WHERE ("auth_user"."first_name" = Art AND "auth_user"."last_name" = Vandelay)'
+Combining several filters
+-------------------------
 
-3. Mapping a different public API onto your schema.
+Now Filternaut is used to filter Users with either an email, a username, or a
+(first name, last name) pair.
 
-  In this example, the source data's ``last_transaction`` value filters on the
-  value of a field across a distant relationship. This allows you to simplify
-  or hide the details of your schema, and to later change them without changing
-  the names you expose.
+.. code-block:: python
 
-  .. code-block:: python
+   >>> from filternaut import Filter
+   >>>
+   >>> user_data = {'email': 'user3@example.org', 'username': 'user3'}
+   >>> filters = (
+   ...     Filter('email') |
+   ...     Filter('username') |
+   ...     (Filter('first_name') & Filter('last_name')))
+   >>> filters.parse(user_data)
+   >>> User.objects.filter(filters.Q).query.__str__()
+   u'SELECT "auth_user"."id", ... WHERE ("auth_user"."email" = user3@example.org OR "auth_user"."username" = user3)'
+
+   >>> # the same filters behave differently with different input data.
+   >>> user_data = {'first_name': 'Art', 'last_name': 'Vandelay'}
+   >>> filters.parse(user_data)
+   >>> User.objects.filter(filters.Q).query.__str__()
+   u'SELECT "auth_user"."id", ... WHERE ("auth_user"."first_name" = Art AND "auth_user"."last_name" = Vandelay)'
+
+Mapping a different public API onto your schema.
+------------------------------------------------
+
+In this example, the source data's ``last_transaction`` value filters on the
+value of a field across a distant relationship. This allows you to simplify or
+hide the details of your schema, and to later change them without changing the
+names you expose.
+
+.. code-block:: python
 
     >>> from filternaut import Filter
     >>> filters = Filter(
@@ -106,124 +124,122 @@ Examples
     ...     dest='order__transaction__created_date',
     ...     lookups=['lt', 'lte', 'gt', 'gte'])
 
-4. Requiring certain filters
+Requiring certain filters
+-------------------------
 
-  If it's mandatory to provide certain filtering values, you can use the
-  ``required`` argument. By default, filters are not required.
+If it's mandatory to provide certain filtering values, you can use the
+``required`` argument. By default, filters are not required.
 
-   .. code-block:: python
+.. code-block:: python
 
-    >>> from filternaut import Filter
-    >>> filters = Filter('username', required=True)
-    >>> filters.parse({})  # no 'username'
-    >>> filters.errors
-    {'username': u'This field is required'}
+   >>> from filternaut import Filter
+   >>> filters = Filter('username', required=True)
+   >>> filters.parse({})  # no 'username'
+   >>> filters.errors
+   {'username': u'This field is required'}
 
-  Filternaut does not currently support conditional requirements. That is,
-  there is no way to say "If filter A has a value, filter B must also have a
-  value". For more complex cases where this is necessary, it is recommended to
-  construct several separate sets of filters, wrap them in the necessary logic,
-  and combine their Q objects if the right conditions are met.
+Filternaut does not currently support conditional requirements. That is, there
+is no way to say "If filter A has a value, filter B must also have a value".
+For more complex cases where this is necessary, it is recommended to construct
+several separate sets of filters, wrap them in the necessary logic, and combine
+their Q objects if the right conditions are met.
 
-5. Using Lookups
+Using Filters with Fields
+-------------------------
 
-   It's common to k
+Filters can be combined with ``django.forms.fields.Field`` instances to
+validate and transform source data.
 
-6. Using Filters with Fields
+.. code-block:: python
 
-   Filters can be combined with ``django.forms.fields.Field`` instances to
-   validate and transform source data.
+   >>> from django.forms import DateTimeField
+   >>> from filternaut.filters import FieldFilter
+   >>>
+   >>> filters = FieldFilter('signup_date', field=DateTimeField())
+   >>> filters.parse({'signup_date': 'potato'})
+   >>> filters.errors
+   {'signup_date': [u'Enter a valid date/time.']}
 
-   .. code-block:: python
+Instead of making you provide your own ``field`` argument, Filternaut pairs
+most of Django's Field subclasses with Filters. They can be used like so:
 
-     >>> from django.forms import DateTimeField
-     >>> from filternaut.filters import FieldFilter
-     >>>
-     >>> filters = FieldFilter('signup_date', field=DateTimeField())
-     >>> filters.parse({'signup_date': 'potato'})
-     >>> filters.errors
-     {'signup_date': [u'Enter a valid date/time.']}
+.. code-block:: python
 
-  Instead of making you provide your own ``field`` argument, Filternaut pairs
-  most of Django's Field subclasses with Filters. They can be used like so:
+   >>> from filternaut.filters import ChoiceFilter
+   >>>
+   >>> difficulties = [(4, 'Torment I'), (5, 'Torment II')]
+   >>> filters = ChoiceFilter('difficulty', choices=difficulties)
+   >>> filters.field
+   <django.forms.fields.ChoiceField ...>
 
-  .. code-block:: python
+   >>> filters.parse({'difficulty': 'foo'})
+   >>> filters.errors
+   {'difficulty': [u'Select a valid choice. foo is not ...']}
 
-    >>> from filternaut.filters import ChoiceFilter
-    >>>
-    >>> difficulties = [(4, 'Torment I'), (5, 'Torment II')]
-    >>> filters = ChoiceFilter('difficulty', choices=difficulties)
-    >>> filters.field
-    <django.forms.fields.ChoiceField ...>
+Filters wrapping fields which require special arguments to instantiate (e.g.
+``choices`` in the example above) also require those arguments. That is,
+because ChoiceField needs ``choices``, so does ChoiceFilter.
 
-    >>> filters.parse({'difficulty': 'foo'})
-    >>> filters.errors
-    {'difficulty': [u'Select a valid choice. foo is not ...']}
+The full list of field-specific filter classes is:
 
-  Filters wrapping fields which require special arguments to instantiate (e.g.
-  ``choices`` in the example above) also require those arguments. That is,
-  because ChoiceField needs ``choices``, so does ChoiceFilter.
-
-  The full list of field-specific filter classes is:
-
-  - BooleanFilter
-  - CharFilter
-  - ChoiceFilter
-  - ComboFilter
-  - DateFilter
-  - DateTimeFilter
-  - DecimalFilter
-  - EmailFilter
-  - FilePathFilter
-  - FloatFilter
-  - GenericIPAddressFilter (Django 1.4 and greater)
-  - IPAddressFilter
-  - ImageFilter
-  - FieldFilter
-  - IntegerFilter
-  - MultiValueFilter
-  - MultipleChoiceFilter
-  - NullBooleanFilter
-  - RegexFilter
-  - SlugFilter
-  - SplitDateTimeFilter
-  - TimeFilter
-  - TypedChoiceFilter
-  - TypedMultipleChoiceFilter (Django 1.4 and greater)
-  - URLFilter
+- BooleanFilter
+- CharFilter
+- ChoiceFilter
+- ComboFilter
+- DateFilter
+- DateTimeFilter
+- DecimalFilter
+- EmailFilter
+- FilePathFilter
+- FloatFilter
+- GenericIPAddressFilter (Django 1.4 and greater)
+- IPAddressFilter
+- ImageFilter
+- FieldFilter
+- IntegerFilter
+- MultiValueFilter
+- MultipleChoiceFilter
+- NullBooleanFilter
+- RegexFilter
+- SlugFilter
+- SplitDateTimeFilter
+- TimeFilter
+- TypedChoiceFilter
+- TypedMultipleChoiceFilter (Django 1.4 and greater)
+- URLFilter
 
 
 Django REST Framework
----------------------
+=====================
 
 Using Filternaut with Django REST Framework is no more complicated than normal;
 simply connect, for example, a request's query parameters to a view's queryset:
 
 .. code-block:: python
 
-    >>> from filternaut.filters import CharFilter, EmailFilter
-    >>> from rest_framework import generics
-    >>>
-    >>> class UserListView(generics.ListAPIView):
-    ...     model = User
-    ...
-    ...     def filter_queryset(self, queryset):
-    ...         filters = CharFilter('username') | EmailFilter('email')
-    ...         filters.parse(self.request.QUERY_PARAMS)
-    ...         queryset = super(UserListView, self).filter_queryset(queryset)
-    ...         return queryset.filter(filters.Q)
+   >>> from filternaut.filters import CharFilter, EmailFilter
+   >>> from rest_framework import generics
+   >>>
+   >>> class UserListView(generics.ListAPIView):
+   ...     model = User
+   ...
+   ...     def filter_queryset(self, queryset):
+   ...         filters = CharFilter('username') | EmailFilter('email')
+   ...         filters.parse(self.request.QUERY_PARAMS)
+   ...         queryset = super(UserListView, self).filter_queryset(queryset)
+   ...         return queryset.filter(filters.Q)
 
 Filternaut also provides a Django REST Framework-compatible filter backend:
 
 .. code-block:: python
 
-    >>> from filternaut.drf import FilternautBackend
-    >>> from filternaut.filters import CharFilter, EmailFilter
-    >>> from rest_framework import views
+   >>> from filternaut.drf import FilternautBackend
+   >>> from filternaut.filters import CharFilter, EmailFilter
+   >>> from rest_framework import views
 
-    >>> class MyView(views.APIView):
-    ...     filter_backends = (FilternautBackend, )
-    ...     filternaut_filters = CharFilter('username') | EmailFilter('email')
+   >>> class MyView(views.APIView):
+   ...     filter_backends = (FilternautBackend, )
+   ...     filternaut_filters = CharFilter('username') | EmailFilter('email')
 
 The attribute ``filternaut_filters`` should contain one or more Filter
 instances. Instead of an attribute, it can also be a callable which returns a
@@ -231,19 +247,19 @@ list of filters, allowing the filters to vary on the current request:
 
 .. code-block:: python
 
-    >>> from rest_framework import views
-    >>>
-    >>> class MyView(views.APIView):
-    ...     filter_backends = (FilternautBackend, )
-    ...
-    ...     def filternaut_filters(self, request):
-    ...         choices = ['guest', 'developer']
-    ...         if request.user.is_staff:
-    ...             choices.append('manager')
-    ...         return ChoiceFilter('account_type', choices=enumerate(choices))
+   >>> from rest_framework import views
+   >>>
+   >>> class MyView(views.APIView):
+   ...     filter_backends = (FilternautBackend, )
+   ...
+   ...     def filternaut_filters(self, request):
+   ...         choices = ['guest', 'developer']
+   ...         if request.user.is_staff:
+   ...             choices.append('manager')
+   ...         return ChoiceFilter('account_type', choices=enumerate(choices))
 
 Tests
------
+=====
 
 First, install the extra dependencies:
 
