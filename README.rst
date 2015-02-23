@@ -57,7 +57,7 @@ Examples
    queryset with it. Filternaut is overkill for such a simple job, but hey,
    it's the first example.
 
-  .. doctest::
+  .. code-block:: python
 
     >>> from filternaut import Filter
     >>>
@@ -72,7 +72,7 @@ Examples
    Now Filternaut is used to filter Users with either an email, a username, or
    a (first name, last name) pair.
 
-  .. doctest::
+  .. code-block:: python
 
     >>> from filternaut import Filter
     >>>
@@ -98,7 +98,7 @@ Examples
   or hide the details of your schema, and to later change them without changing
   the names you expose.
 
-  .. doctest::
+  .. code-block:: python
 
     >>> from filternaut import Filter
     >>> filters = Filter(
@@ -111,7 +111,7 @@ Examples
   If it's mandatory to provide certain filtering values, you can use the
   ``required`` argument. By default, filters are not required.
 
-   .. doctest::
+   .. code-block:: python
 
     >>> from filternaut import Filter
     >>> filters = Filter('username', required=True)
@@ -134,7 +134,7 @@ Examples
    Filters can be combined with ``django.forms.fields.Field`` instances to
    validate and transform source data.
 
-   .. doctest::
+   .. code-block:: python
 
      >>> from django.forms import DateTimeField
      >>> from filternaut.filters import FieldFilter
@@ -147,7 +147,7 @@ Examples
   Instead of making you provide your own ``field`` argument, Filternaut pairs
   most of Django's Field subclasses with Filters. They can be used like so:
 
-  .. doctest::
+  .. code-block:: python
 
     >>> from filternaut.filters import ChoiceFilter
     >>>
@@ -199,7 +199,7 @@ Django REST Framework
 Using Filternaut with Django REST Framework is no more complicated than normal;
 simply connect, for example, a request's query parameters to a view's queryset:
 
-.. doctest::
+.. code-block:: python
 
     >>> from filternaut.filters import CharFilter, EmailFilter
     >>> from rest_framework import generics
@@ -215,7 +215,7 @@ simply connect, for example, a request's query parameters to a view's queryset:
 
 Filternaut also provides a Django REST Framework-compatible filter backend:
 
-.. doctest::
+.. code-block:: python
 
     >>> from filternaut.drf import FilternautBackend
     >>> from filternaut.filters import CharFilter, EmailFilter
@@ -229,7 +229,7 @@ The attribute ``filternaut_filters`` should contain one or more Filter
 instances. Instead of an attribute, it can also be a callable which returns a
 list of filters, allowing the filters to vary on the current request:
 
-.. doctest::
+.. code-block:: python
 
     >>> from rest_framework import views
     >>>
@@ -269,4 +269,4 @@ Finally, you can run the test suite without tox if you prefer:
 
 .. code-block:: console
 
-  $ nosetests
+  $ tox
