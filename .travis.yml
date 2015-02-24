@@ -33,7 +33,7 @@ env:
     - TOX_ENV=py34-dj18a1-drf24
     - TOX_ENV=py34-dj18a1-drf30
     - TOX_ENV=flake8
-    - TOX_ENV=doctest
+    - TOX_ENV=py34-doctest
 
 install:
   - pip install tox
