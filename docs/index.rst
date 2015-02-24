@@ -11,9 +11,9 @@ their names and types.
 
 Filternaut is similar to Django Filters, but does not provide any machinery for
 rendering a user interface and does not inspect your models to autogenerate
-filters. However, Django Filters chains many calls to ``.filter()`` which can
-lead to unexpected join behaviour. Filternaut does not suffer this problem, and
-can better model the relationships between filters.
+filters. However, Django Filters chains many calls to ``.filter()`` which means
+OR-like behaviour with more than one join. Filternaut supports either
+behaviour.
 
 Quickstart
 ==========
@@ -32,7 +32,7 @@ Quickstart
     if filters.valid:
         queryset = queryset.filter(filters.Q)
     else:
-        raise HttpResponseBadRequest(json.dumps(filters.errors))
+        raise HttpResponseBadRequest(filters.errors)
 
 
 Installation
@@ -51,4 +51,14 @@ Filternaut is compatible with:
 Documentation
 =============
 
-See http://filternaut.readthedocs.org/en/latest/ for full documentation.
+.. toctree::
+   :hidden:
+
+   self
+
+.. toctree::
+   :maxdepth: 2
+
+   examples
+   api
+   tests
