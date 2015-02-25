@@ -5,8 +5,8 @@ setup(
     version='0.0.1',
     author='Ben Graham',
     author_email='bgraham@bgraham.com.au',
-    description=('Filternaut constructs arbitrarily nested Q objects from '
-                 'flat data, such as query parameters.'),
+    description=('Construct arbitrarily complex Django "Q" filters from flat '
+                 'data, such as query parameters.'),
     long_description=open('README.rst').read(),
     url='http://github.com/bennullgraham/django-filternaut/',
     license='BSD',
