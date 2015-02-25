@@ -254,3 +254,48 @@ class FieldFilterTests(TestCase):
                 klass('fieldname')
             else:
                 assert not hasattr(filternaut.filters, f)
+
+
+class DefaultValueTests(TestCase):
+
+    def test_default_value_used_if_no_sourcedata_found(self):
+        filters = Filter('count', lookups=['lte', 'gte'], default=3)
+        filters.parse({})  # no value for 'count'
+
+        expected = {'count__exact': 3}
+        actual = dict(flatten_qobj(filters.Q))
+
+        assert expected == actual
+
+    def test_default_lookup_is_exact(self):
+        f = Filter('count', default=3)
+        assert f.default_lookup == 'exact'
+
+    def test_other_lookups_ignored_when_default_used(self):
+        filters = Filter('count', lookups=['lte', 'gte'], default=3)
+        filters.parse({})  # no value for 'count'
+
+        keys = dict(flatten_qobj(filters.Q)).keys()
+
+        assert 'lte' not in keys
+        assert 'gte' not in keys
+
+    def test_default_lookup_type_can_be_changed(self):
+        filters = Filter('count', lookups=['lte', 'gte'], default=3,
+                         default_lookup='gt')
+        filters.parse({})  # no value for 'count'
+
+        expected = {'count__gt': 3}
+        actual = dict(flatten_qobj(filters.Q))
+
+        assert expected == actual
+
+    def test_default_ignored_if_sourcedata_found(self):
+        filters = Filter('count', lookups=['lte', 'gte'], default=3,
+                         default_lookup='foobarbaz')
+        filters.parse({'count__gte': 4})
+
+        expected = {'count__gte': 4}
+        actual = dict(flatten_qobj(filters.Q))
+
+        assert expected == actual

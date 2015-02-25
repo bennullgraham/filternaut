@@ -1,7 +1,7 @@
 Examples
 ========
 
-Using a simple filter
+Using a Simple Filter
 ---------------------
 
 Here Filternaut pulls a username from ``user_data`` and filters a User queryset
@@ -23,7 +23,7 @@ example.
    SELECT "auth_user"."id", ...
    WHERE "auth_user"."username" = nostromo
 
-Using lookups
+Using Lookups
 -------------
 
 It's common to require comparisons such as greater than, less than, etc.
@@ -52,7 +52,7 @@ list:
 
    filters = Filter('last_login', lookups=['year', 'exact'])
 
-Combining several filters
+Combining Several Filters
 -------------------------
 
 Now Filternaut is used to filter Users with either an email, a username, or a
@@ -94,7 +94,7 @@ data:
    WHERE ("auth_user"."first_name" = Art AND
           "auth_user"."last_name" = Vandelay)
 
-Mapping a different public API onto your schema.
+Mapping a Different Public API onto your Schema.
 ------------------------------------------------
 
 In this example, the source data's ``last_transaction`` value filters on the
@@ -110,7 +110,45 @@ names you expose.
        dest='order__transaction__created_date',
        lookups=['lt', 'lte', 'gt', 'gte'])
 
-Requiring certain filters
+Default Values for Filters
+--------------------------
+
+Filters can be given default values.
+
+.. testcode::
+
+   from filternaut import Filter
+   filters = Filter('is_active', default=True)
+   filters.parse({})  # no 'is_active'
+   print(User.objects.filter(filters.Q).query)
+
+.. testoutput::
+   :options: +NORMALIZE_WHITESPACE
+
+   SELECT "auth_user"."id", ...
+   WHERE "auth_user"."is_active" = True
+
+When a default value is used, lookups are ignored. Most combinations of lookups
+are mutually exclusive when comparing the same value. For example, filtering by
+``score__lt=3`` and ``score__gt=3`` does not make any sense. Instead, a lookup
+of ``exact`` is used. ``default_lookup`` may be used to override this.
+
+.. testcode::
+
+   from datetime import datetime
+   from filternaut import Filter
+   filters = Filter('last_login', lookups=['lte', 'lt', 'gt', 'gte'],
+                    default=datetime.now(), default_lookup='lte')
+   filters.parse({})  # no 'last_login'
+   print(User.objects.filter(filters.Q).query)
+
+.. testoutput::
+   :options: +NORMALIZE_WHITESPACE
+
+   SELECT "auth_user"."id", ...
+   WHERE "auth_user"."last_login" <= ...
+
+Requiring Certain Filters
 -------------------------
 
 If it's mandatory to provide certain filtering values, you can use the
@@ -129,7 +167,7 @@ If it's mandatory to provide certain filtering values, you can use the
 .. testoutput::
 
    False
-   {'username': 'This field is required'}
+   {'username': ['This field is required']}
 
 Filternaut does not currently support conditional requirements. That is, there
 is no way to say "If filter A has a value, filter B must also have a value".

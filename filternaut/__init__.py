@@ -88,14 +88,22 @@ class Filter(Leaf):
     def __init__(self, dest, **kwargs):
         self.dest = dest
         self.source = kwargs.get('source', dest)
-        self.lookups = kwargs.get('lookups', [None])
+        self.lookups = kwargs.get('lookups', ['exact'])
         self.required = kwargs.get('required', False)
         self.negate = kwargs.get('negate', False)
+
+        # None is a valid default -- consider exclude(groups=None) -- so use
+        # the absence or presence of self.default to indicate whether a default
+        # should be used.
+        if 'default' in kwargs:
+            self.default = kwargs['default']
+            self.default_lookup = kwargs.get('default_lookup', 'exact')
 
         self._filters = {}
         self._errors = {}
         self.parsed = False
 
+        # lazy folk can provide a single lookup as a string.
         if isinstance(self.lookups, six.string_types):
             self.lookups = [self.lookups, ]
 
@@ -114,7 +122,7 @@ class Filter(Leaf):
 
         If lookup is None, the raw 'source' is returned.
         """
-        if lookup is None:
+        if lookup in (None, 'exact'):
             source = self.source
             dest = self.dest
         else:
@@ -160,9 +168,25 @@ class Filter(Leaf):
                 pass
             except ValidationError as ex:
                 errors[source] = ex.messages
+
+        # Use a default if there were no filters.
+        if not filters and hasattr(self, 'default'):
+            filters = self.make_default_filter()
+
+        # If there are still no filters but this filter is required, that's an
+        # error.
         if not filters and self.required:
-            errors[self.source] = 'This field is required'
+            errors[self.source] = ['This field is required']
+
         return filters, errors
+
+    def make_default_filter(self):
+        """
+        Construct a default filter dictionary to be used if no source data was
+        found during parsing.
+        """
+        dest = '{}__{}'.format(self.dest, self.default_lookup)
+        return {dest: self.default}
 
     def get_source_value(self, key, data):
         """
