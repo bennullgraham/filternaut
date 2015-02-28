@@ -26,16 +26,3 @@ except AttributeError:
 # and this one too.
 from django.db import connection  # noqa
 connection.creation.create_test_db()
-
-
-def flatten_qobj(qobj):
-    """
-    Flatten a Q object into a series of field, value pairs.
-    """
-    from django.db.models import Q
-    for child in qobj.children:
-        if isinstance(child, Q):
-            for grandchild in flatten_qobj(child):
-                yield grandchild
-        else:
-            yield child

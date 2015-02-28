@@ -1,15 +1,14 @@
 # -*- coding: utf8 -*-
 
-from __future__ import unicode_literals, print_function, absolute_import
+from __future__ import absolute_import, print_function, unicode_literals
+
+from operator import and_, or_
 from unittest import TestCase
-from operator import or_, and_
 
-from django.core.exceptions import ValidationError
-from six.moves import reduce
-
+from filternaut import Filter, FilterTree, Optional
 from filternaut.tree import Leaf, Tree
-from filternaut import Filter, FilterTree
-from tests import flatten_qobj
+from six.moves import reduce
+from tests.util import NopeFilter
 
 
 class OperatorTests(TestCase):
@@ -52,53 +51,10 @@ class FilterTreeTests(TestCase):
         filters = Filter('afield') & Filter('anotherfield')
         assert isinstance(filters, FilterTree)
 
-    def test_ANDed_filters_must_all_be_present(self):
-        """
-        If one of several ANDed sibling-filters parsed no value, none of those
-        filters should partake in the final Q.
-        """
-        filters = Filter('one') & Filter('two') & Filter('three')
-        filters.parse(dict(one=1))
-        assert bool(filters.Q) == False  # two and three missing
-
-        filters.parse(dict(one=1, two=2))
-        assert bool(filters.Q) == False  # three missing
-
-        filters.parse(dict(two=2, three=3))
-        assert bool(filters.Q) == False  # one missing
-
-        filters.parse(dict(one=1, two=2, three=3))
-        assert bool(filters.Q) == True  # all present
-
-    def test_ANDed_filters_must_all_be_present_while_OR_is_unaffected(self):
-        """
-        If one of several ANDed sibling-filters parsed no value, none of those
-        filters should partake in the final Q. ORed filters are unaffected.
-        """
-        filters = (Filter('one') & Filter('two')) | Filter('three')
-
-        filters.parse(dict(one=1, three=3))
-        actual = dict(flatten_qobj(filters.Q))
-        assert 'one' not in actual
-        assert 'two' not in actual
-        assert 'three' in actual
-
-        filters.parse(dict(two=2))
-        actual = dict(flatten_qobj(filters.Q))
-        assert 'one' not in actual
-        assert 'two' not in actual
-        assert 'three' not in actual
-
-        filters.parse(dict(one=1, two=2, three=3))
-        actual = dict(flatten_qobj(filters.Q))
-        assert 'one' in actual
-        assert 'two' in actual
-        assert 'three' in actual
-
     def test_errors_from_filtertree(self):
-        class NopeFilter(Filter):
-            def clean(self, value):
-                raise ValidationError("Nope")
+        """
+        FilterTree's errors should be the errors of the filters it contains.
+        """
         filters = NopeFilter('one') | NopeFilter('two') | NopeFilter('three')
         filters.parse(dict(one=1, two=2, three=3))
         assert 'one' in filters.errors
@@ -107,6 +63,40 @@ class FilterTreeTests(TestCase):
         assert not filters.valid
 
     def test_validity_from_filtertree(self):
+        """
+        FilterTree's validity should be a proxy to the validities of the
+        filters it contains.
+        """
         filters = Filter('one') | Filter('two') | Filter('three')
         filters.parse(dict())
         assert filters.valid
+
+    def test_Optional_combines_well(self):
+        """
+        Combine Optional with Filters and FilterTrees in various combinations.
+        """
+        f1, f2, f3, f4, f5 = map(Filter, ['1', '2', '3', '4', '5'])
+        o1 = Optional(f1, f2)
+        o2 = Optional(f3, f4)
+
+        left_or = o1 | f3
+        left_and = o1 & f3
+        right_or = f3 | o1
+        right_and = f3 & o1
+        both_or = o1 | o2
+        both_and = o1 & o2
+
+        filters_list = (left_or, left_and, right_or, right_and, both_or,
+                        both_and)
+        filters_with_123 = left_or, left_and, right_or, right_and
+        filters_with_1234 = both_or, both_and
+        for filters in filters_list:
+            assert filters.__class__ == FilterTree
+
+        for filters in filters_with_123:
+            required = f1, f2, f3
+            assert set(required) == set(filters)
+
+        for filters in filters_with_1234:
+            required = f1, f2, f3, f4
+            assert set(required) == set(filters)

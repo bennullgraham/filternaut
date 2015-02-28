@@ -129,17 +129,6 @@ class FullStackTests(TestCase):
         assert resp.status_code == 200
         assert actual == expected
 
-    def test_one_nonrequired_ANDed_filter_missing(self):
-        """
-        Provide one of two ANDed filters; neither filter is required. This
-        discards both the ANDed filters, so is the same as providing no data.
-        """
-        data = {'email': 'nomatch@example.org'}
-        request = self.factory.get('/my_view/', data=data)
-        resp = my_view(request)
-        actual = resp_to_users(resp)
-        expected = [self.u1, self.u2, self.u3]
-
         assert resp.status_code == 200
         assert actual == expected
 

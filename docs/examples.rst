@@ -169,11 +169,72 @@ If it's mandatory to provide certain filtering values, you can use the
    False
    {'username': ['This field is required']}
 
-Filternaut does not currently support conditional requirements. That is, there
-is no way to say "If filter A has a value, filter B must also have a value".
-For more complex cases where this is necessary, it is recommended to construct
-several separate sets of filters, wrap them in the necessary logic, and combine
-their Q objects if the right conditions are met.
+Conditional Requirements
+------------------------
+
+Sometimes a field is required only when another is present. For example, you
+may say that a value for ``last_name`` must be accompanied by a value for
+``first_name``, whilst also allowing neither. Additionally, you may say that a
+value for ``middle_name`` requires values for ``first_name`` and ``last_name``,
+but not vice versa. That example is illustrated here:
+
+.. testcode::
+
+   from filternaut import Filter, Optional
+
+   filters = (
+      Optional(
+         Filter('first_name', required=True),
+         Filter('middle_name'),
+         Filter('last_name', required=True)) &
+      Filter('badgers_defeated'))
+
+   filters.parse({'first_name': 'Nostromo'})
+   print(filters.errors['__all__'])
+   print(filters.errors['last_name'])
+
+.. testoutput::
+   :options: +NORMALIZE_WHITESPACE
+
+   ['If any of first_name, last_name, middle_name are provided,
+     all must be provided']
+   ['This field is required']
+
+Though the middle name filter isn't required itself, when present it triggers
+the requirement of the filters that are.
+
+.. testcode::
+
+   filters.parse({'middle_name': 'Boone'})
+   print(filters.errors['__all__'])
+   print(filters.errors['first_name'])
+   print(filters.errors['last_name'])
+
+.. testoutput::
+   :options: +NORMALIZE_WHITESPACE
+
+   ['If any of first_name, last_name, middle_name are provided,
+     all must be provided']
+   ['This field is required']
+   ['This field is required']
+
+When all required filters in an Optional group are present, the filters as a
+whole are valid.
+
+.. testcode::
+
+   filters.parse({
+      'first_name': 'Nostromo',
+      'last_name': 'Cheradenine'})
+   assert filters.valid
+
+Similarly, when none of the filters in an Optional group are present, the
+filters as a whole are valid.
+
+.. testcode::
+
+   filters.parse({})
+   assert filters.valid
 
 Validating and Transforming Source Data
 ---------------------------------------

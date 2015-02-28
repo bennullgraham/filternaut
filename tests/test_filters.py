@@ -1,15 +1,16 @@
 # -*- coding: utf8 -*-
 
-from __future__ import unicode_literals, print_function, absolute_import
-from unittest import TestCase
+from __future__ import absolute_import, print_function, unicode_literals
+
 import tempfile
+from unittest import TestCase
 
 from django import VERSION as DJANGO_VERSION
 
-from filternaut import Filter
-from filternaut.filters import ChoiceFilter, RegexFilter, FilePathFilter
-from tests import flatten_qobj
 import filternaut
+from filternaut import Filter, Optional
+from filternaut.filters import ChoiceFilter, FilePathFilter, RegexFilter
+from tests.util import flatten_qobj, NopeFilter
 
 
 class FilterTests(TestCase):
@@ -44,7 +45,7 @@ class FilterTests(TestCase):
             'fieldname__gte': 'foo',
             'fieldname__lte': 'bar'}
         f.parse(data)
-        assert f.errors is None
+        assert not f.errors
 
     def test_required_filter_requires_at_least_one_key(self):
         """
@@ -57,12 +58,16 @@ class FilterTests(TestCase):
             'fieldname__gte': 'foo',
             'fieldname__lte': 'bar'}
         f.parse(data)
-        assert f.errors is not None
+        assert f.errors
         assert 'fieldname' in f.errors
 
     def test_lookups_can_be_provided_as_a_string(self):
         f = Filter('fieldname', lookups='contains')
         assert f.lookups == ['contains']
+
+    def test_lookups_can_be_provided_as_a_comma_separated_string(self):
+        f = Filter('fieldname', lookups='lt,lte,gt,gte')
+        assert f.lookups == ['lt', 'lte', 'gt', 'gte']
 
     def test_negating_filters(self):
         f = Filter('fieldname')
@@ -102,27 +107,27 @@ class FilterTests(TestCase):
 class TestSourceDestPairCreation(TestCase):
 
     def test_no_lookup_same_source_and_dest(self):
-        filter = Filter('field')
-        expected = ('field', 'field')
-        actual = filter.make_source_dest_pair(None)
+        filter = Filter('field', lookups=[None])
+        expected = [('field', 'field'), ]
+        actual = list(filter.source_dest_pairs())
         assert expected == actual
 
     def test_gte_lookup_same_source_and_dest(self):
-        filter = Filter('field')
-        expected = ('field__gte', 'field__gte')
-        actual = filter.make_source_dest_pair('gte')
+        filter = Filter('field', lookups=['gte'])
+        expected = [('field__gte', 'field__gte'), ]
+        actual = list(filter.source_dest_pairs())
         assert expected == actual
 
     def test_no_lookup_differing_source_and_dest(self):
-        filter = Filter(source='something', dest='field')
-        expected = ('something', 'field')
-        actual = filter.make_source_dest_pair(None)
+        filter = Filter(source='something', dest='field', lookups=[None])
+        expected = [('something', 'field'), ]
+        actual = list(filter.source_dest_pairs())
         assert expected == actual
 
     def test_lte_lookup_differing_source_and_dest(self):
-        filter = Filter(source='something', dest='field')
-        expected = ('something__lte', 'field__lte')
-        actual = filter.make_source_dest_pair('lte')
+        filter = Filter(source='something', dest='field', lookups=['lte'])
+        expected = [('something__lte', 'field__lte'), ]
+        actual = list(filter.source_dest_pairs())
         assert expected == actual
 
 
@@ -189,11 +194,11 @@ class FieldFilterTests(TestCase):
 
         filter = ChoiceFilter(choices=choices, dest='name')
         filter.parse({'name': 'bean'})
-        assert filter.errors is not None
+        assert filter.errors
 
         filter = ChoiceFilter(choices=choices, dest='name')
         filter.parse({'name': 'alai'})
-        assert filter.errors is None
+        assert not filter.errors
 
     def test_choicefilter_instantiation_styles(self):
         fieldname = 'fieldname'
@@ -214,12 +219,12 @@ class FieldFilterTests(TestCase):
     def test_regexfilter(self):
         filter = RegexFilter('fieldname', r'\d+')
         filter.parse({'fieldname': 'alpha'})
-        assert filter.errors is not None
+        assert filter.errors
         assert 'fieldname' in filter.errors
 
         filter = RegexFilter('fieldname', r'\d+')
         filter.parse({'fieldname': '1008346'})
-        assert filter.errors is None
+        assert not filter.errors
         assert filter.valid
 
     def test_filepathfilter(self):
@@ -299,3 +304,78 @@ class DefaultValueTests(TestCase):
         actual = dict(flatten_qobj(filters.Q))
 
         assert expected == actual
+
+
+class OptionalTests(TestCase):
+
+    def setUp(self):
+        self.filters = Optional(
+            Filter('one', required=True),
+            Filter('two'),
+            Filter('three', required=True))
+        self.unrelated = Filter('ten') & (Filter('eleven') | Filter('twelve'))
+
+    def test_no_values_present(self):
+        data = dict()  # no data
+        self.filters.parse(data)
+        assert self.filters.valid
+
+    def test_all_values_present(self):
+        data = dict(one=1, two=2, three=3)
+        self.filters.parse(data)
+        assert self.filters.valid
+
+    def test_only_required_values_present(self):
+        data = dict(one=1, three=3)
+        self.filters.parse(data)
+        assert self.filters.valid
+
+    def test_only_nonrequired_values_present(self):
+        data = dict(two=2)
+        self.filters.parse(data)
+        assert not self.filters.valid
+        assert 'one' in self.filters.errors
+        assert 'three' in self.filters.errors
+        assert '__all__' in self.filters.errors
+
+    def test_one_required_filter_missing(self):
+        data = dict(two=2, three=3)
+        self.filters.parse(data)
+        assert not self.filters.valid
+        assert 'one' in self.filters.errors
+        assert 'three' not in self.filters.errors
+        assert '__all__' in self.filters.errors
+
+    def test_ANDed_with_unrelated(self):
+        filters = self.filters & self.unrelated
+
+        data = dict()  # no data
+        filters.parse(data)
+        assert filters.valid
+
+        data = dict(one=1, three=3)  # all required data
+        filters.parse(data)
+        assert filters.valid
+
+        data = dict(ten=10)  # only some unrelated
+        filters.parse(data)
+        assert filters.valid
+
+        data = dict(ten=10, eleven=11, twelve=12)  # only all unrelated
+        filters.parse(data)
+        assert filters.valid
+
+    def test_validation_errors_are_not_silenced(self):
+        filters = Optional(
+            NopeFilter('a', required=True),
+            NopeFilter('b', required=True),
+            NopeFilter('c'))
+        data = dict(a=1, b=2, c=3)
+        filters.parse(data)
+        assert 'a' in filters.errors
+        assert 'b' in filters.errors
+        assert 'c' in filters.errors
+
+        data = dict()
+        filters.parse(data)
+        assert not filters.errors

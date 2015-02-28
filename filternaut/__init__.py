@@ -45,9 +45,8 @@ class FilterTree(Tree):
 
         ``errors`` cannot be read before ``parse()`` has been called.
         """
-        errors = {}
-        for filter in self:
-            errors.update(filter.errors or {})
+        errors = self.left.errors
+        errors.update(self.right.errors)
         return errors
 
     @property
@@ -56,22 +55,71 @@ class FilterTree(Tree):
         A Django "Q" object, built by combining input data with the filter
         definitions. Cannot be read before ``parse()`` has been called.
         """
-        qs = self.left.Q, self.right.Q
-
-        # 'empty' Filters generate empty Q objects. These don't falsify other Q
-        # objects to which they are ANDed, so we simulate that behaviour here.
-        # In other words, Q(<real query>) & Q() == Q(<real query>), whereas we
-        # want it to == Q().
-        if self.operator == and_ and not all(qs):
-            q = Q()
-        else:
-            q = self.operator(*qs)
-
+        q = self.operator(self.left.Q, self.right.Q)
         return ~q if self.negate else q
 
     def parse(self, data):
-        for filter in self:
-            filter.parse(data)
+        """
+        Ask all filters to look through ``data`` and thereby configure
+        themselves.
+        """
+        for fltr in self:
+            fltr.parse(data)
+
+
+class Optional(FilterTree):
+    """
+    Filters included underneath Optional have their required=True configuration
+    ignored as long as all those filters are missing. If some but not all are
+    present, then required=True is observed, and those filters that are missing
+    become invalid. If all filters under Optional have valid source data, they
+    are valid as a whole.
+
+    This is useful for situations where you want to require one field if
+    another is present. For example, requiring ``last_name`` if ``first_name``
+    is present, but also allowing neither. In this case, you would mark both
+    with required=True, and wrap them in Optional:
+
+        Optional(
+            Filter('first_name', required=True),
+            Filter('last_name', required=True))
+
+    Generally, filters underneath Optional will have required=True, however it
+    isn't necessary; consider adding 'middle name' to the above example.
+    """
+
+    tree_class = FilterTree
+
+    def __init__(self, left, *rest):
+        operator = and_  # OR does not make sense with group-require
+        if not rest:
+            # TODO if left is a tree, walk it instead of complaining
+            raise ValueError("Optional has no effect on a single filter")
+        right = six.moves.reduce(and_, rest)
+        super(Optional, self).__init__(False, operator, left, right)
+
+    @property
+    def errors(self):
+        errors = super(Optional, self).errors
+        filters = list(self)
+        missing = [f.missing for f in filters if f.required]
+        present = [f.dict for f in filters]
+
+        # some filters have values, but not all required filters have values.
+        if any(missing) and any(present) and not all(present):
+            # insert an additional error
+            sources = sorted([f.source for f in filters])
+            if '__all__' not in errors:
+                errors['__all__'] = []
+            errors['__all__'].append(
+                'If any of {} are provided, all must be '
+                'provided'.format(', '.join(sources)))
+        else:
+            for f in filters:
+                if f.required and f.missing:
+                    del errors[f.source]
+
+        return errors
 
 
 class Filter(Leaf):
@@ -83,6 +131,7 @@ class Filter(Leaf):
     way Q objects can.
     """
 
+    #: Filters combine into FilterTree instances
     tree_class = FilterTree
 
     def __init__(self, dest, **kwargs):
@@ -102,10 +151,11 @@ class Filter(Leaf):
         self._filters = {}
         self._errors = {}
         self.parsed = False
+        self.missing = False
 
-        # lazy folk can provide a single lookup as a string.
+        # accept lookups as a comma-separated string.
         if isinstance(self.lookups, six.string_types):
-            self.lookups = [self.lookups, ]
+            self.lookups = self.lookups.split(',')
 
     def __invert__(self):
         """
@@ -114,21 +164,6 @@ class Filter(Leaf):
         inverted = deepcopy(self)
         inverted.negate = not self.negate
         return inverted
-
-    def make_source_dest_pair(self, lookup):
-        """
-        Take a 'lookup' value, such as 'contains' or 'lte', and combine it with
-        this field's source, returning e.g. username__contains.
-
-        If lookup is None, the raw 'source' is returned.
-        """
-        if lookup in (None, 'exact'):
-            source = self.source
-            dest = self.dest
-        else:
-            source = '{}__{}'.format(self.source, lookup)
-            dest = '{}__{}'.format(self.dest, lookup)
-        return source, dest
 
     def parse(self, data):
         """
@@ -139,8 +174,26 @@ class Filter(Leaf):
         Once this method has been called, the ``errors``, ``valid`` and ``Q``
         attributes become usable.
         """
-        self._filters, self._errors = self.get_q_kwargs(data)
+        source_pairs = self.source_value_pairs(data)
+        dest_pairs, errors = self.dest_value_pairs(source_pairs)
+
+        # handle default value
+        if not source_pairs and hasattr(self, 'default'):
+            dest_pairs = (self.default_dest_value_pair(), )
+
+        # if required, check if satisfied
+        if not source_pairs and self.required:
+            self.missing = True
+            if self.source not in errors:
+                errors[self.source] = []
+            errors[self.source].append('This field is required')
+        else:
+            # this allows a later parse() to undo an earlier missing=True
+            self.missing = False
+
         self.parsed = True
+        self._filters = dict(dest_pairs)
+        self._errors = errors
 
     def clean(self, value):
         """
@@ -149,44 +202,69 @@ class Filter(Leaf):
         """
         return value
 
-    def get_q_kwargs(self, data):
+    def source_dest_pairs(self):
         """
-        Look through ``data`` for keys which match any of the source /
-        source__lookup values for this Filter. Any present are cleaned and kept
-        for filtering. Errors are likewise kept.
+        For each lookup in self.lookups, such as 'contains' or 'lte', combine
+        it with this field's source and dest, returning e.g.
+        (username__contains, account_name__contains)
 
-        Returns a dictionary of filters keyed by dest (suitable for unpacking
-        into a Q constructor) and a dictionary of errors, keyed by source.
+        If any lookup is None, that pair becomes (source, dest)
         """
-        filters, errors = {}, {}
+        pairs = []
         for lookup in self.lookups:
-            source, dest = self.make_source_dest_pair(lookup)
+            if lookup in (None, 'exact'):
+                source = self.source
+                dest = self.dest
+            else:
+                source = '{}__{}'.format(self.source, lookup)
+                dest = '{}__{}'.format(self.dest, lookup)
+            pairs.append((source, dest))
+        return pairs
+
+    def source_value_pairs(self, data):
+        """
+        Return a list of two-tuples containing valid sources for this filter --
+        made by combining this filter's source and the various lookups -- and
+        their values, as pulled from the data handed to parse.
+
+        Sources with no found value are excluded.
+        """
+        pairs = []
+        for source, _ in self.source_dest_pairs():
             try:
                 value = self.get_source_value(source, data)
-                filters[dest] = self.clean(value)
+                pairs.append((source, value))
             except KeyError:
                 pass
+        return pairs
+
+    def dest_value_pairs(self, sourcevalue_pairs):
+        """
+        Return two values:
+            - A list of two-tuples containing dests (ORM relation/field names)
+              and their values.
+            - A dictionary of errors, keyed by the source which they originated
+              from.
+        """
+        sourcedest_map = dict(self.source_dest_pairs())
+        pairs = []
+        errors = {}
+        for source, value in sourcevalue_pairs:
+            try:
+                value = self.clean(value)
+                dest = sourcedest_map[source]
+                pairs.append((dest, value))
             except ValidationError as ex:
                 errors[source] = ex.messages
+        return pairs, errors
 
-        # Use a default if there were no filters.
-        if not filters and hasattr(self, 'default'):
-            filters = self.make_default_filter()
-
-        # If there are still no filters but this filter is required, that's an
-        # error.
-        if not filters and self.required:
-            errors[self.source] = ['This field is required']
-
-        return filters, errors
-
-    def make_default_filter(self):
+    def default_dest_value_pair(self):
         """
-        Construct a default filter dictionary to be used if no source data was
-        found during parsing.
+        Construct a default dest/value pair to be used if no source data was
+        found during parsing (and if this filter has default=True).
         """
         dest = '{}__{}'.format(self.dest, self.default_lookup)
-        return {dest: self.default}
+        return (dest, self.default)
 
     def get_source_value(self, key, data):
         """
@@ -197,6 +275,18 @@ class Filter(Leaf):
         return data[key]
 
     @property
+    def dict(self):
+        """
+        A dictionary representation of this Filter's filter configuration.
+        Cannot be read before ``parse()`` has been called.
+        """
+        if not self.parsed:
+            raise ValueError(
+                "Must call parse() on this filter before "
+                "accessing this attribute")
+        return self._filters
+
+    @property
     def valid(self):
         """
         A boolean indicating whether this Filter registered any errors during
@@ -204,7 +294,7 @@ class Filter(Leaf):
         """
         if not self.parsed:
             raise ValueError(
-                "Must call parse() on filters before checking validity")
+                "Must call parse() on this filter before checking validity")
         return not self._errors
 
     @property
@@ -217,11 +307,8 @@ class Filter(Leaf):
         """
         if not self.parsed:
             raise ValueError(
-                "Must call parse() on filters before reading errors")
-        if not self._errors:
-            return None
-        else:
-            return self._errors
+                "Must call parse() on this filter before reading errors")
+        return self._errors
 
     @property
     def Q(self):
@@ -231,6 +318,6 @@ class Filter(Leaf):
         """
         if not self.parsed:
             raise ValueError(
-                "Must call parse() on filters before using Q")
-        q = Q(**self._filters)
+                "Must call parse() on this filter before using Q")
+        q = Q(**self.dict)
         return ~q if self.negate else q
