@@ -209,6 +209,11 @@ class Filter(Leaf):
         (username__contains, account_name__contains)
 
         If any lookup is None, that pair becomes (source, dest)
+
+        If there is only one lookup, two pairs are listed containing the source
+        both with and without the lookup. This allows source data to omit the
+        lookup from the key, e.g. providing 'email' to the filter
+        Filter('email', lookups=['iexact']).
         """
         pairs = []
         for lookup in self.lookups:
@@ -219,6 +224,14 @@ class Filter(Leaf):
                 source = '{}__{}'.format(self.source, lookup)
                 dest = '{}__{}'.format(self.dest, lookup)
             pairs.append((source, dest))
+
+        # allow source data to omit the lookup if only one lookup listed.
+        if len(pairs) == 1:
+            lookup = self.lookups[0]
+            if lookup not in (None, 'exact'):
+                dest = '{}__{}'.format(self.dest, self.lookups[0])
+                pairs.append((self.source, dest))
+
         return pairs
 
     def source_value_pairs(self, data):
@@ -230,9 +243,10 @@ class Filter(Leaf):
         Sources with no found value are excluded.
         """
         pairs = []
-        for source, _ in self.source_dest_pairs():
+        for source, dest in self.source_dest_pairs():
             try:
-                value = self.get_source_value(source, data)
+                many = dest.endswith('__in')
+                value = self.get_source_value(source, data, many)
                 pairs.append((source, value))
             except KeyError:
                 pass
@@ -266,13 +280,22 @@ class Filter(Leaf):
         dest = '{}__{}'.format(self.dest, self.default_lookup)
         return (dest, self.default)
 
-    def get_source_value(self, key, data):
+    def get_source_value(self, key, data, many=False):
         """
-        Pull ``key`` from ``data``. This implementation is trivial, but
-        subclasses may want to perform non-trivial inspections of ``data`` and
-        can subclass here to do so.
+        Pull ``key`` from ``data``.
+
+        When ``many`` is True, a list of values is returned. Otherwise, a
+        single value is returned.
         """
-        return data[key]
+        if many is False:
+            return data[key]
+        elif hasattr(data, 'getlist'):  # Django querydict, multivaluedict
+            if key not in data:
+                raise KeyError(repr(key))
+            return data.getlist(key)
+        else:
+            # only a single value, but many=True, so return as list.
+            return [data[key]]
 
     @property
     def dict(self):

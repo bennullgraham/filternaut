@@ -45,7 +45,7 @@ class ExtensionTests(TestCase):
         handling the picking of a single value.
         """
         class BiggestValueFilter(Filter):
-            def get_source_value(self, key, data):
+            def get_source_value(self, key, data, many=False):
                 values = data.getlist(key)
                 return max(map(int, values))
         data = QueryDict('field=3&field=6&field=1&field=2')

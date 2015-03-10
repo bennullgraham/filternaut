@@ -6,6 +6,7 @@ import tempfile
 from unittest import TestCase
 
 from django import VERSION as DJANGO_VERSION
+from django.utils.datastructures import MultiValueDict
 
 import filternaut
 from filternaut import Filter, Optional
@@ -103,6 +104,45 @@ class FilterTests(TestCase):
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
 
+    def test_multivaluedict_as_source(self):
+        """
+        We don't expect multiple values to be pulled from a multi-value source
+        without explicit instruction
+        """
+        filters = Filter('name')
+        data = MultiValueDict(dict(name=['foo', 'bar']))
+        filters.parse(data)
+        expected = dict(name='bar')  # last one wins
+        actual = dict(flatten_qobj(filters.Q))
+        assert expected == actual
+
+    def test_multivaluedict_as_source_when_many_values_required(self):
+        """
+        Having a dest ending in '__in' /does/ constitute explicit instruction
+        to pull multiple values from a source.
+        """
+        filters = Filter('field', lookups=['in'])
+        data = MultiValueDict(dict(field=['foo', 'bar']))
+        filters.parse(data)
+        expected = dict(field__in=['foo', 'bar'])
+        actual = dict(flatten_qobj(filters.Q))
+        assert expected == actual
+
+    def test_multivaluedict_not_used_for_nonlisty_filtering(self):
+        filters = Filter('field', lookups=['exact', 'in'])
+
+        data = MultiValueDict(dict(field=['foo', 'bar']))
+        filters.parse(data)
+        expected = dict(field='bar')  # last one wins
+        actual = dict(flatten_qobj(filters.Q))
+        assert expected == actual
+
+        data = MultiValueDict(dict(field__in=['foo', 'bar']))
+        filters.parse(data)
+        expected = dict(field__in=['foo', 'bar'])
+        actual = dict(flatten_qobj(filters.Q))
+        assert expected == actual
+
 
 class TestSourceDestPairCreation(TestCase):
 
@@ -114,9 +154,11 @@ class TestSourceDestPairCreation(TestCase):
 
     def test_gte_lookup_same_source_and_dest(self):
         filter = Filter('field', lookups=['gte'])
-        expected = [('field__gte', 'field__gte'), ]
+        expected = [
+            ('field__gte', 'field__gte'),
+            ('field', 'field__gte')]
         actual = list(filter.source_dest_pairs())
-        assert expected == actual
+        assert sorted(expected) == sorted(actual)
 
     def test_no_lookup_differing_source_and_dest(self):
         filter = Filter(source='something', dest='field', lookups=[None])
@@ -126,9 +168,11 @@ class TestSourceDestPairCreation(TestCase):
 
     def test_lte_lookup_differing_source_and_dest(self):
         filter = Filter(source='something', dest='field', lookups=['lte'])
-        expected = [('something__lte', 'field__lte'), ]
+        expected = [
+            ('something__lte', 'field__lte'),
+            ('something', 'field__lte')]
         actual = list(filter.source_dest_pairs())
-        assert expected == actual
+        assert sorted(expected) == sorted(actual)
 
 
 class ParsingTests(TestCase):

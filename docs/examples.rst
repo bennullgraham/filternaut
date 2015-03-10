@@ -52,6 +52,21 @@ list:
 
    filters = Filter('last_login', lookups=['year', 'exact'])
 
+If you provide only one lookup, the source data can optionally omit the lookup
+from the name of the key:
+
+.. testcode::
+
+   from filternaut.filters import Filter
+
+   filters = Filter('email', lookups=['iexact'])
+
+   # the lookup can be omitted...
+   filters.parse({'email': 'Sentence@Case.COM'})
+
+   # ...or included
+   filters.parse({'email__iexact': 'Sentence@Case.COM'})
+
 Combining Several Filters
 -------------------------
 
@@ -93,6 +108,32 @@ data:
    SELECT "auth_user"."id", ...
    WHERE ("auth_user"."first_name" = Art AND
           "auth_user"."last_name" = Vandelay)
+
+Filtering with Multiple Values
+------------------------------
+
+Using the lookup ``__in`` triggers the collection of multiple values from the
+source. If this is the case, the source must provide a ``getlist`` method.
+Django's QueryDict provides such a method.
+
+.. testcode::
+
+   from filternaut.filters import Filter
+   from django.utils.datastructures import MultiValueDict
+
+   filters = Filter(source='groups', dest='groups__name', lookups=['in'])
+   user_data = MultiValueDict({'groups': ['foo', 'bar']})
+   filters.parse(user_data)
+   print(User.objects.filter(filters.Q).query)
+
+.. testoutput::
+   :options: +NORMALIZE_WHITESPACE
+
+   SELECT "auth_user"."id", ...
+   WHERE "auth_group"."name" IN (foo, bar)
+
+If the source does not provide a ``getlist`` method Filternaut will fall back
+to a single value, but still deliver it as a list.
 
 Mapping a Different Public API onto your Schema.
 ------------------------------------------------
