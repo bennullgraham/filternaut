@@ -53,4 +53,4 @@ Filternaut is compatible with:
 Documentation
 =============
 
-See http://filternaut.readthedocs.org/en/latest/ for full documentation.
+See https://filternaut.readthedocs.org for full documentation.
