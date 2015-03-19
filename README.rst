@@ -2,6 +2,10 @@ Filternaut
 **********
 
 .. image:: https://travis-ci.org/bennullgraham/filternaut.svg?branch=master
+   :target: https://travis-ci.org/bennullgraham/filternaut
+.. image:: https://landscape.io/github/bennullgraham/filternaut/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/bennullgraham/filternaut/master
+   :alt: Code Health
 
 Filternaut is a simple library which generates arbitrarily complex Django
 Q-objects from simple data. It fits nicely into situations where users provide
