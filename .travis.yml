@@ -9,11 +9,11 @@ env:
     - TOX_ENV=py27-dj15
     - TOX_ENV=py27-dj16
     - TOX_ENV=py27-dj17
-    - TOX_ENV=py27-dj18a1
+    - TOX_ENV=py27-dj18
     - TOX_ENV=py34-dj15
     - TOX_ENV=py34-dj16
     - TOX_ENV=py34-dj17
-    - TOX_ENV=py34-dj18a1
+    - TOX_ENV=py34-dj18
     - TOX_ENV=py27-dj14-drf24
     - TOX_ENV=py27-dj14-drf30
     - TOX_ENV=py27-dj15-drf24
@@ -22,16 +22,16 @@ env:
     - TOX_ENV=py27-dj16-drf30
     - TOX_ENV=py27-dj17-drf24
     - TOX_ENV=py27-dj17-drf30
-    - TOX_ENV=py27-dj18a1-drf24
-    - TOX_ENV=py27-dj18a1-drf30
+    - TOX_ENV=py27-dj18-drf24
+    - TOX_ENV=py27-dj18-drf30
     - TOX_ENV=py34-dj15-drf24
     - TOX_ENV=py34-dj15-drf30
     - TOX_ENV=py34-dj16-drf24
     - TOX_ENV=py34-dj16-drf30
     - TOX_ENV=py34-dj17-drf24
     - TOX_ENV=py34-dj17-drf30
-    - TOX_ENV=py34-dj18a1-drf24
-    - TOX_ENV=py34-dj18a1-drf30
+    - TOX_ENV=py34-dj18-drf24
+    - TOX_ENV=py34-dj18-drf30
     - TOX_ENV=flake8
     - TOX_ENV=py34-doctest
 
