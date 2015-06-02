@@ -5,7 +5,7 @@ First, install the extra dependencies:
 
 .. code-block:: console
 
-  $ pip install requirements/maintainer.txt
+  $ pip install -r requirements/maintainer.txt
 
 You can run the test suite in a specific environment via tox. In this example,
 against Python 2.7 and Django 1.4.  (Hint: try ``tox -l`` for a full list).
