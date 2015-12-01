@@ -41,7 +41,7 @@ class FilternautBackend(BaseFilterBackend):
         if callable(filters):
             filters = filters(request)
 
-        filters.parse(request.QUERY_PARAMS)
+        filters.parse(request.query_params)
 
         if filters.valid:
             return self.is_valid(request, queryset, filters)

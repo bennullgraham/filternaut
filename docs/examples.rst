@@ -367,7 +367,7 @@ simply connect, for example, a request's query parameters to a view's queryset:
 
        def filter_queryset(self, queryset):
            filters = CharFilter('username') | EmailFilter('email')
-           filters.parse(self.request.QUERY_PARAMS)
+           filters.parse(self.request.query_params)
            queryset = super(UserListView, self).filter_queryset(queryset)
            return queryset.filter(filters.Q)
 
