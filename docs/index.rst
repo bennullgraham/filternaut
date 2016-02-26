@@ -62,3 +62,14 @@ Documentation
    examples
    api
    tests
+
+
+Changelog
+=========
+
+0.0.7
+-----
+
+- Fix BooleanFilter rejecting falsish values
+- Add support for Django 1.9
+- Remove support for Django REST Framework 2.x and 3.1; add support for 3.3
