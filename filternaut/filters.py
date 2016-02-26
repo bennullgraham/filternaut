@@ -67,6 +67,15 @@ class FilePathFilter(FieldFilter):
                                              *args, **kwargs)
 
 
+class BooleanFilter(FieldFilter):
+    """
+    BooleanField required=True does not have sanely.
+    """
+    def __init__(self, dest, **kwargs):
+        field = BooleanField(required=False)
+        super(BooleanFilter, self).__init__(dest, field=field, **kwargs)
+
+
 # -- simple mixtures of fieldfilter and django fields.
 
 class FieldMixin(object):
@@ -77,10 +86,6 @@ class FieldMixin(object):
 
 class CharFilter(FieldMixin, FieldFilter):
     field_class = CharField
-
-
-class BooleanFilter(FieldMixin, FieldFilter):
-    field_class = BooleanField
 
 
 class ComboFilter(FieldMixin, FieldFilter):

@@ -430,3 +430,12 @@ class OptionalTests(TestCase):
         data = dict()
         filters.parse(data)
         assert not filters.errors
+
+
+class BooleanTests(TestCase):
+    filter = filternaut.filters.BooleanFilter('approved')
+
+    valid_values = '1', '0', 'true', 'false', 'True', 'False', True, False
+    for value in valid_values:
+        filter.parse(dict(approved=value))
+        assert filter.valid
