@@ -5,13 +5,12 @@ from __future__ import absolute_import, print_function, unicode_literals
 import tempfile
 from unittest import TestCase
 
+import filternaut
 from django import VERSION as DJANGO_VERSION
 from django.utils.datastructures import MultiValueDict
-
-import filternaut
 from filternaut import Filter, Optional
 from filternaut.filters import ChoiceFilter, FilePathFilter, RegexFilter
-from tests.util import flatten_qobj, NopeFilter
+from tests.util import NopeFilter, flatten_qobj
 
 
 class FilterTests(TestCase):
@@ -286,12 +285,13 @@ class FieldFilterTests(TestCase):
         filterfields = (
             'BooleanFilter', 'CharFilter', 'ComboFilter', 'DateFilter',
             'DateTimeFilter', 'DecimalFilter', 'EmailFilter', 'FloatFilter',
-            'IPAddressFilter', 'ImageFilter', 'IntegerFilter',
-            'MultiValueFilter', 'MultipleChoiceFilter', 'NullBooleanFilter',
-            'SlugFilter', 'SplitDateTimeFilter', 'TimeFilter',
-            'TypedChoiceFilter', 'URLFilter')
+            'ImageFilter', 'IntegerFilter', 'MultiValueFilter',
+            'MultipleChoiceFilter', 'NullBooleanFilter', 'SlugFilter',
+            'SplitDateTimeFilter', 'TimeFilter', 'TypedChoiceFilter',
+            'URLFilter')
         filterfields_dj14_plus = (
             'GenericIPAddressFilter', 'TypedMultipleChoiceFilter')
+        filterfields_dj19_less = ('IPAddressFilter', )
 
         for f in filterfields:
             klass = getattr(filternaut.filters, f)
@@ -299,6 +299,13 @@ class FieldFilterTests(TestCase):
 
         for f in filterfields_dj14_plus:
             if DJANGO_VERSION >= (1, 4):
+                klass = getattr(filternaut.filters, f)
+                klass('fieldname')
+            else:
+                assert not hasattr(filternaut.filters, f)
+
+        for f in filterfields_dj19_less:
+            if DJANGO_VERSION < (1, 9):
                 klass = getattr(filternaut.filters, f)
                 klass('fieldname')
             else:

@@ -1,19 +1,20 @@
 # -*- coding: utf8 -*-
 
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
-from django.forms import (
-    CharField, IntegerField, DateField, TimeField, DateTimeField, RegexField,
-    EmailField, ImageField, URLField, BooleanField, NullBooleanField,
-    ChoiceField, MultipleChoiceField, ComboField, MultiValueField, FloatField,
-    DecimalField, SplitDateTimeField, IPAddressField, FilePathField, SlugField,
-    TypedChoiceField)
-
-# note GenericIPAddressField and TypedMultipleChoiceField are conditionally
-# imported later in this file; they are not available in all versions of
-# Django.
-
+from django.forms import (BooleanField, CharField, ChoiceField, ComboField,
+                          DateField, DateTimeField, DecimalField, EmailField,
+                          FilePathField, FloatField, ImageField, IntegerField,
+                          MultipleChoiceField, MultiValueField,
+                          NullBooleanField, RegexField, SlugField,
+                          SplitDateTimeField, TimeField, TypedChoiceField,
+                          URLField)
 from filternaut import Filter
+
+# note IPAddressField, GenericIPAddressField and TypedMultipleChoiceField are
+# conditionally imported later in this file; they are not available in all
+# versions of Django.
+
 
 __all__ = [
     'BooleanFilter', 'CharFilter', 'ChoiceFilter', 'ComboFilter', 'DateFilter',
@@ -106,10 +107,6 @@ class FloatFilter(FieldMixin, FieldFilter):
     field_class = FloatField
 
 
-class IPAddressFilter(FieldMixin, FieldFilter):
-    field_class = IPAddressField
-
-
 class ImageFilter(FieldMixin, FieldFilter):
     field_class = ImageField
 
@@ -170,3 +167,14 @@ else:
     __all__.extend((
         'GenericIPAddressFilter',
         'TypedMultipleChoiceFilter'))
+
+try:
+    # django 1.9 and later drop support for IPAddressField
+    from django.forms import IPAddressField
+except ImportError:
+    pass
+else:
+    class IPAddressFilter(FieldMixin, FieldFilter):
+        field_class = IPAddressField
+
+    __all__.extend(('IPAddressField', ))
