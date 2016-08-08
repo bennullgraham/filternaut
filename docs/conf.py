@@ -12,8 +12,15 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
+
+# --- here be hax ---
+import django
+from django.conf import settings
+# hax -- lazy translation-proxies make doctests hard, so monkey patch them into
+# no-ops.
+from django.utils import translation
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -66,19 +73,21 @@ try:
 except ImportError:
     html_theme = 'default'
 
-# --- here be hax ---
-import django
 
-# hax -- lazy translation-proxies make doctests hard, so monkey patch them into
-# no-ops.
-from django.utils import translation
 translation.ugettext_lazy = lambda s: s
 
-from django.conf import settings
 settings.configure(
     DATABASES={
-        'default': {'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': ':memory:'}})
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:'
+        }
+    },
+    INSTALLED_APPS=(
+        'django.contrib.auth',
+        'django.contrib.contenttypes'
+    )
+)
 django.setup()
 
 doctest_global_setup = """
