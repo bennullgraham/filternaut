@@ -43,16 +43,6 @@ env:
   - TOX_ENV=py34-dj19
   - TOX_ENV=py34-dj19-drf33
   - TOX_ENV=py34-dj19-drf34
-  - TOX_ENV=py35-dj110
-  - TOX_ENV=py35-dj110-drf33
-  - TOX_ENV=py35-dj110-drf34
-  - TOX_ENV=py35-dj18
-  - TOX_ENV=py35-dj18-drf33
-  - TOX_ENV=py35-dj18-drf34
-  - TOX_ENV=py35-dj19
-  - TOX_ENV=py35-dj19-drf33
-  - TOX_ENV=py35-dj19-drf34
-  - TOX_ENV=py35-doctest
 
 install:
   - pip install tox
