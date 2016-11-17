@@ -11,7 +11,7 @@ setup(
     url='http://github.com/bennullgraham/django-filternaut/',
     license='BSD',
     packages=['filternaut'],
-    install_requires=['six==1.9.0'],
+    install_requires=['six>=1.9.0'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
