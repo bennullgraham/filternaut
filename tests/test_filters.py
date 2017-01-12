@@ -9,7 +9,8 @@ import filternaut
 from django import VERSION as DJANGO_VERSION
 from django.utils.datastructures import MultiValueDict
 from filternaut import Filter, Optional
-from filternaut.filters import ChoiceFilter, FilePathFilter, RegexFilter
+from filternaut.filters import (CharFilter, ChoiceFilter, FilePathFilter,
+                                RegexFilter)
 from tests.util import NopeFilter, flatten_qobj
 
 
@@ -310,6 +311,20 @@ class FieldFilterTests(TestCase):
                 klass('fieldname')
             else:
                 assert not hasattr(filternaut.filters, f)
+
+    def test_listlike_values_cleaned_individually(self):
+        f = CharFilter('fieldname', lookups='exact,in')
+        data = MultiValueDict({
+            'fieldname': ['single value'],  # MVDict treats 1-list as single
+            'fieldname__in': ['multiple', 'values'],
+        })
+        expected = {
+            'fieldname': 'single value',
+            'fieldname__in': ['multiple', 'values']
+        }
+        f.parse(data)
+        actual = dict(flatten_qobj(f.Q))
+        assert expected == actual
 
 
 class DefaultValueTests(TestCase):

@@ -2,6 +2,10 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from collections import Iterable
+
+import six
+
 from django.forms import (BooleanField, CharField, ChoiceField, ComboField,
                           DateField, DateTimeField, DecimalField, EmailField,
                           FilePathField, FloatField, ImageField, IntegerField,
@@ -25,6 +29,13 @@ __all__ = [
     'TimeFilter', 'TypedChoiceFilter', 'URLFilter']
 
 
+def is_listlike(val):
+    """
+    True if `val` is an iterable (list, tuple, ...) but not a string
+    """
+    return isinstance(val, Iterable) and not isinstance(val, six.string_types)
+
+
 class FieldFilter(Filter):
     """
     FieldFilters use a django.forms.Field to clean their input value when
@@ -42,7 +53,10 @@ class FieldFilter(Filter):
         super(FieldFilter, self).__init__(dest, **kwargs)
 
     def clean(self, value):
-        return self.field.clean(value)
+        if is_listlike(value):
+            return type(value)(self.field.clean(v) for v in value)
+        else:
+            return self.field.clean(value)
 
 
 # -- mixtures of fieldfilter and django fields requiring additional arguments
