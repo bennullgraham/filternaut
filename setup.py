@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='django-filternaut',
-    version='0.0.8',
+    version='0.0.9',
     author='Ben Graham',
     author_email='bgraham@bgraham.com.au',
     description=('Construct arbitrarily complex Django "Q" filters from flat '
