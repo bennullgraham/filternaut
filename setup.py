@@ -8,7 +8,7 @@ setup(
     description=('Construct arbitrarily complex Django "Q" filters from flat '
                  'data, such as query parameters.'),
     long_description=open('README.rst').read(),
-    url='http://github.com/bennullgraham/django-filternaut/',
+    url='https://github.com/bennullgraham/filternaut',
     license='BSD',
     packages=['filternaut'],
     install_requires=['six>=1.9.0'],
