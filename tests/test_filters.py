@@ -457,7 +457,7 @@ class OptionalTests(TestCase):
         assert not filters.errors
 
 
-class BooleanTests(TestCase):
+def boolean_tests():
     filter = filternaut.filters.BooleanFilter('approved')
 
     valid_values = '1', '0', 'true', 'false', 'True', 'False', True, False
