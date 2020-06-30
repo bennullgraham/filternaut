@@ -99,6 +99,7 @@ class ComboFilter(FieldFilter):
 # -- simple mixtures of fieldfilter and django fields.
 
 class FieldMixin(object):
+
     def __init__(self, dest, **kwargs):
         field = self.field_class()
         super(FieldMixin, self).__init__(dest, field=field, **kwargs)

@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 from copy import deepcopy
-from operator import and_
+from operator import and_, or_
 
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -342,5 +342,26 @@ class Filter(Leaf):
         if not self.parsed:
             raise ValueError(
                 "Must call parse() on this filter before using Q")
-        q = Q(**self.dict)
+
+        # Django, via SQL, does not do what you might expect with
+        # .filter(rank__in=[1, 2, None]). This doesn't give you things with
+        # rank 1, 2 or null -- you just get things with rank 1 and 2. Instead
+        # SQL wants you to make an explicit "in or is null" check. This may be
+        # for good reason but it's an awkward construct to make via a query
+        # parameter, so we extract the None from [1, 2, None] and flip it into
+        # an isnull.
+        dicts = [deepcopy(self.dict)]
+        for key, val in list(dicts[0].items()):
+            is_many = key.endswith('__in')
+            has_null = is_many and None in val
+            if is_many and has_null:
+                lookup = '{}__isnull'.format(key[:-4])
+                dicts.append({lookup: True})
+                val.remove(None)
+                # if the only value was None, we don't need the "__in" any
+                # more.
+                if not val:
+                    dicts[0].pop(key)
+
+        q = six.moves.reduce(or_, (Q(**d) for d in dicts))
         return ~q if self.negate else q

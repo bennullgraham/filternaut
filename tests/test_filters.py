@@ -10,9 +10,9 @@ from django import VERSION as DJANGO_VERSION
 from django.utils.datastructures import MultiValueDict
 from filternaut import Filter, Optional
 from filternaut.filters import (CharFilter, ChoiceFilter, FilePathFilter,
-                                RegexFilter, ComboFilter)
+                                RegexFilter, ComboFilter, FieldFilter)
 from tests.util import NopeFilter, flatten_qobj
-from django.forms import CharField
+from django.forms import CharField, IntegerField
 
 
 class FilterTests(TestCase):
@@ -295,7 +295,6 @@ class FieldFilterTests(TestCase):
 
         for valid in valids:
             filter.parse({'fieldname': valid})
-            print(filter.errors)
             assert not filter.errors
             assert filter.valid
 
@@ -318,7 +317,6 @@ class FieldFilterTests(TestCase):
         )
 
         for f in filterfields:
-            print(f)
             klass = getattr(filternaut.filters, f)
             klass('fieldname')
 
@@ -464,3 +462,28 @@ def boolean_tests():
     for value in valid_values:
         filter.parse(dict(approved=value))
         assert filter.valid
+
+
+class MultiValueWithNoneTests(TestCase):
+
+    def get_output_of_field(self, **data):
+        filter = FieldFilter('rank', lookups='in', field=IntegerField(required=False))
+        data = MultiValueDict(data)
+        filter.parse(data)
+        assert filter.valid
+        return dict(filter.Q.children)
+
+    def test_with_regular_value(self):
+        actual = self.get_output_of_field(rank=['1', '2', '3'])
+        expected = {'rank__in': [1,2,3]}
+        assert actual == expected
+
+    def test_with_none_value_and_regulars(self):
+        actual = self.get_output_of_field(rank=['1', '2', '3', ''])
+        expected = {'rank__in': [1,2,3], 'rank__isnull': True}
+        assert actual == expected
+
+    def test_with_only_none_value(self):
+        actual = self.get_output_of_field(rank=[''])
+        expected = {'rank__isnull': True}
+        assert actual == expected
