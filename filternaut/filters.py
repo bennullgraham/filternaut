@@ -90,6 +90,12 @@ class BooleanFilter(FieldFilter):
         super(BooleanFilter, self).__init__(dest, field=field, **kwargs)
 
 
+class ComboFilter(FieldFilter):
+    def __init__(self, dest, fields, **kwargs):
+        field = ComboField(fields=fields)
+        super(ComboFilter, self).__init__(dest, field=field, **kwargs)
+
+
 # -- simple mixtures of fieldfilter and django fields.
 
 class FieldMixin(object):
@@ -100,10 +106,6 @@ class FieldMixin(object):
 
 class CharFilter(FieldMixin, FieldFilter):
     field_class = CharField
-
-
-class ComboFilter(FieldMixin, FieldFilter):
-    field_class = ComboField
 
 
 class DateFilter(FieldMixin, FieldFilter):

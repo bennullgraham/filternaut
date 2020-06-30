@@ -10,8 +10,9 @@ from django import VERSION as DJANGO_VERSION
 from django.utils.datastructures import MultiValueDict
 from filternaut import Filter, Optional
 from filternaut.filters import (CharFilter, ChoiceFilter, FilePathFilter,
-                                RegexFilter)
+                                RegexFilter, ComboFilter)
 from tests.util import NopeFilter, flatten_qobj
+from django.forms import CharField
 
 
 class FilterTests(TestCase):
@@ -279,38 +280,47 @@ class FieldFilterTests(TestCase):
         path = tempfile.gettempdir()
         FilePathFilter('fieldname', path)
 
+    def test_combofilter(self):
+        filter = ComboFilter('fieldname', fields=[
+            CharField(min_length=2, max_length=4),
+            CharField(min_length=3, max_length=6)
+        ])
+        invalids = '', 'a', 'aa', 'aaaaa', 'aaaaaa', 'aaaaaaa'
+        valids = 'aaa', 'aaaa'
+
+        for invalid in invalids:
+            filter.parse({'fieldname': invalid})
+            assert filter.errors
+            assert 'fieldname' in filter.errors
+
+        for valid in valids:
+            filter.parse({'fieldname': valid})
+            print(filter.errors)
+            assert not filter.errors
+            assert filter.valid
+
+    def test_multivaluefilter(self):
+        # TODO this field is relatively complex. have not written a test for it
+        # yet.
+        pass
+
     def test_instantiate_all_filterfields_without_special_args(self):
         # ChoiceFilter, FilePathFilter, and RegexFilter have their own specific
         # tests, because their fields' constructors, and therefore their own
         # constructors, require additional arguments
         filterfields = (
-            'BooleanFilter', 'CharFilter', 'ComboFilter', 'DateFilter',
+            'BooleanFilter', 'CharFilter', 'DateFilter',
             'DateTimeFilter', 'DecimalFilter', 'EmailFilter', 'FloatFilter',
-            'ImageFilter', 'IntegerFilter', 'MultiValueFilter',
-            'MultipleChoiceFilter', 'NullBooleanFilter', 'SlugFilter',
-            'SplitDateTimeFilter', 'TimeFilter', 'TypedChoiceFilter',
-            'URLFilter')
-        filterfields_dj14_plus = (
-            'GenericIPAddressFilter', 'TypedMultipleChoiceFilter')
-        filterfields_dj19_less = ('IPAddressFilter', )
+            'ImageFilter', 'IntegerFilter', 'MultipleChoiceFilter',
+            'NullBooleanFilter', 'SlugFilter', 'SplitDateTimeFilter',
+            'TimeFilter', 'TypedChoiceFilter', 'URLFilter',
+            'GenericIPAddressFilter', 'TypedMultipleChoiceFilter'
+        )
 
         for f in filterfields:
+            print(f)
             klass = getattr(filternaut.filters, f)
             klass('fieldname')
-
-        for f in filterfields_dj14_plus:
-            if DJANGO_VERSION >= (1, 4):
-                klass = getattr(filternaut.filters, f)
-                klass('fieldname')
-            else:
-                assert not hasattr(filternaut.filters, f)
-
-        for f in filterfields_dj19_less:
-            if DJANGO_VERSION < (1, 9):
-                klass = getattr(filternaut.filters, f)
-                klass('fieldname')
-            else:
-                assert not hasattr(filternaut.filters, f)
 
     def test_listlike_values_cleaned_individually(self):
         f = CharFilter('fieldname', lookups='exact,in')

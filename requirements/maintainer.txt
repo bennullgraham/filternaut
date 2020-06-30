@@ -6,6 +6,6 @@ rednose==1.2.1
 sphinx-rtd-theme==0.1.6
 sphinx==1.2.3
 sphinx_rtd_theme==0.1.6
-tox==2.3.1
+tox==3.16.1
 twine==1.4.0
 wheel==0.24.0

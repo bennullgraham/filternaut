@@ -3,46 +3,14 @@ language: python
 sudo: false
 
 env:
+  - TOX_ENV=py35-dj22
+  - TOX_ENV=py37-dj30
+  - TOX_ENV=py38-dj30
+  - TOX_ENV=py35-dj22-drf311
+  - TOX_ENV=py37-dj30-drf311
+  - TOX_ENV=py38-dj30-drf311
   - TOX_ENV=flake8
-  - TOX_ENV=py27-dj110
-  - TOX_ENV=py27-dj110-drf33
-  - TOX_ENV=py27-dj110-drf34
-  - TOX_ENV=py27-dj14
-  - TOX_ENV=py27-dj14-drf33
-  - TOX_ENV=py27-dj14-drf34
-  - TOX_ENV=py27-dj15
-  - TOX_ENV=py27-dj15-drf33
-  - TOX_ENV=py27-dj15-drf34
-  - TOX_ENV=py27-dj16
-  - TOX_ENV=py27-dj16-drf33
-  - TOX_ENV=py27-dj16-drf34
-  - TOX_ENV=py27-dj17
-  - TOX_ENV=py27-dj17-drf33
-  - TOX_ENV=py27-dj17-drf34
-  - TOX_ENV=py27-dj18
-  - TOX_ENV=py27-dj18-drf33
-  - TOX_ENV=py27-dj18-drf34
-  - TOX_ENV=py27-dj19
-  - TOX_ENV=py27-dj19-drf33
-  - TOX_ENV=py27-dj19-drf34
-  - TOX_ENV=py34-dj110
-  - TOX_ENV=py34-dj110-drf33
-  - TOX_ENV=py34-dj110-drf34
-  - TOX_ENV=py34-dj15
-  - TOX_ENV=py34-dj15-drf33
-  - TOX_ENV=py34-dj15-drf34
-  - TOX_ENV=py34-dj16
-  - TOX_ENV=py34-dj16-drf33
-  - TOX_ENV=py34-dj16-drf34
-  - TOX_ENV=py34-dj17
-  - TOX_ENV=py34-dj17-drf33
-  - TOX_ENV=py34-dj17-drf34
-  - TOX_ENV=py34-dj18
-  - TOX_ENV=py34-dj18-drf33
-  - TOX_ENV=py34-dj18-drf34
-  - TOX_ENV=py34-dj19
-  - TOX_ENV=py34-dj19-drf33
-  - TOX_ENV=py34-dj19-drf34
+  - TOX_ENV=py38-doctest
 
 install:
   - pip install tox
