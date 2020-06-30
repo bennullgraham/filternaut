@@ -5,18 +5,23 @@ from filternaut.filters import EmailFilter
 
 
 try:
-    from rest_framework import test, generics
+    from rest_framework import generics
+    from rest_framework.test import APITestCase, APIRequestFactory
     from filternaut.drf import FilternautBackend
 except ImportError:
-    from nose import SkipTest
-    raise SkipTest('Django REST Framework must be installed to test DRF'
-                   'integration')
+    import pytest
+    pytest.mark.skip(
+        'Django REST Framework must be installed to test DRF integration',
+        allow_module_level=True
+    )
+    # without an APITestCase we get a NameError
+    class APITestCase:
+        pass
 
-
-class IntegrationTests(test.APITestCase):
+class IntegrationTests(APITestCase):
 
     def setUp(self):
-        self.factory = test.APIRequestFactory()
+        self.factory = APIRequestFactory()
         self.request = self.factory.get('/users/', data={
             'email': 'user@example.org'})
 
