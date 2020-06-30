@@ -2,20 +2,22 @@ language: python
 
 sudo: false
 
-env:
-  - TOX_ENV=py35-dj22
-  - TOX_ENV=py37-dj30
-  - TOX_ENV=py38-dj30
-  - TOX_ENV=py35-dj22-drf311
-  - TOX_ENV=py37-dj30-drf311
-  - TOX_ENV=py38-dj30-drf311
-  - TOX_ENV=flake8
-  - TOX_ENV=py38-doctest
+matrix:
+  include:
+    - python: 3.5
+      env: TOXENV=py35-dj22-drf311
+
+    - python: 3.8
+      env: TOXENV=py38-dj30-drf311
+
+    - python: 3.8
+      env: TOXENV=flake8
+
+    - python: 3.8
+      env: TOXENV=py38-doctest
 
 install:
   - pip install tox
 
 script:
-    tox -e $TOX_ENV
-
-
+    tox
