@@ -140,6 +140,7 @@ class Filter(Leaf):
         self.lookups = kwargs.get('lookups', ['exact'])
         self.required = kwargs.get('required', False)
         self.negate = kwargs.get('negate', False)
+        self.none_to_isnull = kwargs.get('none_to_isnull', False)
 
         # None is a valid default -- consider exclude(groups=None) -- so use
         # the absence or presence of self.default to indicate whether a default
@@ -343,25 +344,27 @@ class Filter(Leaf):
             raise ValueError(
                 "Must call parse() on this filter before using Q")
 
+        dicts = [deepcopy(self.dict)]
+
         # Django, via SQL, does not do what you might expect with
         # .filter(rank__in=[1, 2, None]). This doesn't give you things with
         # rank 1, 2 or null -- you just get things with rank 1 and 2. Instead
-        # SQL wants you to make an explicit "in or is null" check. This may be
-        # for good reason but it's an awkward construct to make via a query
-        # parameter, so we extract the None from [1, 2, None] and flip it into
-        # an isnull.
-        dicts = [deepcopy(self.dict)]
-        for key, val in list(dicts[0].items()):
-            is_many = key.endswith('__in')
-            has_null = is_many and None in val
-            if is_many and has_null:
-                lookup = '{}__isnull'.format(key[:-4])
-                dicts.append({lookup: True})
-                val.remove(None)
-                # if the only value was None, we don't need the "__in" any
-                # more.
-                if not val:
-                    dicts[0].pop(key)
+        # SQL wants you to make an explicit "in or is null" check. For
+        # consistency with Django and SQL, filternaut also behaves this way by
+        # default. If you don't want this behaviour, argue none_to_isnull=True
+        # when making a filter.
+        if self.none_to_isnull:
+            for key, val in list(dicts[0].items()):
+                is_many = key.endswith('__in')
+                has_null = is_many and None in val
+                if is_many and has_null:
+                    lookup = '{}__isnull'.format(key[:-4])
+                    dicts.append({lookup: True})
+                    val.remove(None)
+                    # if the only value was None, we don't need the "__in" any
+                    # more.
+                    if not val:
+                        dicts[0].pop(key)
 
         q = six.moves.reduce(or_, (Q(**d) for d in dicts))
         return ~q if self.negate else q

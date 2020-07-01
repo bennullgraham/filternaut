@@ -466,24 +466,40 @@ def boolean_tests():
 
 class MultiValueWithNoneTests(TestCase):
 
-    def get_output_of_field(self, **data):
-        filter = FieldFilter('rank', lookups='in', field=IntegerField(required=False))
+    def get_output_of_field(self, isnull=False, **data):
+        filter = FieldFilter('rank', lookups='in', none_to_isnull=isnull,
+                             field=IntegerField(required=False))
         data = MultiValueDict(data)
         filter.parse(data)
         assert filter.valid
         return dict(filter.Q.children)
 
-    def test_with_regular_value(self):
-        actual = self.get_output_of_field(rank=['1', '2', '3'])
-        expected = {'rank__in': [1,2,3]}
+    def test_enabled_with_regular_value(self):
+        actual = self.get_output_of_field(rank=['1', '2', '3'], isnull=True)
+        expected = {'rank__in': [1, 2, 3]}
         assert actual == expected
 
-    def test_with_none_value_and_regulars(self):
-        actual = self.get_output_of_field(rank=['1', '2', '3', ''])
-        expected = {'rank__in': [1,2,3], 'rank__isnull': True}
+    def test_enabled_with_none_value_and_regulars(self):
+        actual = self.get_output_of_field(rank=['1', '2', '3', ''], isnull=True)
+        expected = {'rank__in': [1, 2, 3], 'rank__isnull': True}
         assert actual == expected
 
-    def test_with_only_none_value(self):
-        actual = self.get_output_of_field(rank=[''])
+    def test_enabled_with_only_none_value(self):
+        actual = self.get_output_of_field(rank=[''], isnull=True)
         expected = {'rank__isnull': True}
+        assert actual == expected
+
+    def test_disabled_with_regular_value(self):
+        actual = self.get_output_of_field(rank=['1', '2', '3'], isnull=False)
+        expected = {'rank__in': [1, 2, 3]}
+        assert actual == expected
+
+    def test_disabled_with_none_value_and_regulars(self):
+        actual = self.get_output_of_field(rank=['1', '2', '3', ''], isnull=False)
+        expected = {'rank__in': [1, 2, 3, None]}
+        assert actual == expected
+
+    def test_disabled_with_only_none_value(self):
+        actual = self.get_output_of_field(rank=[''], isnull=False)
+        expected = {'rank__in': [None]}
         assert actual == expected
