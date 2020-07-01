@@ -44,9 +44,12 @@ Installation
 
 Filternaut is compatible with:
 
-- Python 2.7 and 3.4
-- Django 1.4 through to 1.9
-- Django REST Framework 3.3 (optional)
+- Python 3
+- Django 2.2 and 3.0
+- Django REST Framework 3.11 (optional)
+
+Python 2.7 support is still in the codebase but no longer tested. You are
+welcome to try your luck.
 
 Documentation
 =============
@@ -66,6 +69,30 @@ Documentation
 
 Changelog
 =========
+
+0.0.11
+------
+
+- Support "in" filters where a candidate value is null. Set
+  `none_to_isnull=True` when creating a Filter to take advantage of this.
+- Move test suite up to Django 2.2 and 3.0; DRF 3.11; Python 3.5+. Filternaut
+  will still run on Python 2.7 but it is no longer official or tested.
+
+0.0.10
+------
+
+- Fix incorrect project URL in setup.py (thanks Jonathan Barratt!)
+
+0.0.9
+-----
+
+- Filters accepting multiple values now correctly clean each value individually
+
+0.0.8
+-----
+
+- Official support for DRF 3.4, Python 3.5 and Django 1.10
+- Fix issue where exactly six 1.9 was a dependency
 
 0.0.7
 -----

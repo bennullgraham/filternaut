@@ -50,9 +50,12 @@ Installation
 
 Filternaut is compatible with:
 
-- Python 2.7, 3.4 and 3.5
-- Django 1.4 through to 1.10
-- (optionally) Django REST Framework 3.3 and 3.4
+- Python 3
+- Django 2.2 and 3.0
+- Django REST Framework 3.11 (optional)
+
+Python 2.7 support is still in the codebase but no longer tested. You are
+welcome to try your luck.
 
 Documentation
 =============

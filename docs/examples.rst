@@ -135,6 +135,34 @@ Django's QueryDict provides such a method.
 If the source does not provide a ``getlist`` method Filternaut will fall back
 to a single value, but still deliver it as a list.
 
+If you'd like one of your multiple values to be None and match against some row
+in your database with a null value, you need to take two special actions.
+Firstly you must tell filternaut to treat the None specially, and secondly you
+must construct the backing form-field yourself so it can be given the
+`required` parameter which is otherwise always True.
+
+.. testcode::
+
+   from filternaut.filters import FieldFilter
+   from django.forms import IntegerField
+   from django.utils.datastructures import MultiValueDict
+
+   filters = FieldFilter(
+      'id', none_to_isnull=True, lookups='in',
+      field=IntegerField(required=False)
+   )
+   user_data = MultiValueDict({'id': [1, None]})
+   filters.parse(user_data)
+   print(User.objects.filter(filters.Q).query)
+
+.. testoutput::
+   :options: +NORMALIZE_WHITESPACE
+
+   SELECT "auth_user"."id", ...
+   WHERE ("auth_user"."id" IN (1) OR "auth_user"."id" IS NULL)
+
+The reason this is a special case arises from the way SQL treats null.
+
 Mapping a Different Public API onto your Schema.
 ------------------------------------------------
 
@@ -334,7 +362,7 @@ The full list of field-specific filter classes is:
 - EmailFilter
 - FilePathFilter
 - FloatFilter
-- GenericIPAddressFilter (Django 1.4 and greater)
+- GenericIPAddressFilter
 - IPAddressFilter
 - ImageFilter
 - FieldFilter
@@ -347,7 +375,7 @@ The full list of field-specific filter classes is:
 - SplitDateTimeFilter
 - TimeFilter
 - TypedChoiceFilter
-- TypedMultipleChoiceFilter (Django 1.4 and greater)
+- TypedMultipleChoiceFilter
 - URLFilter
 
 
