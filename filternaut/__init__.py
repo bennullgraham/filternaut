@@ -138,7 +138,7 @@ class Filter(Leaf):
         self.dest = dest
         self.source = kwargs.get('source', dest)
         self.lookups = kwargs.get('lookups', ['exact'])
-        self.multivalue_lookups = kwargs.get('multivalue_lookups', ['__in'])
+        self.multivalue_lookups = kwargs.get('multivalue_lookups', ['in'])
         self.required = kwargs.get('required', False)
         self.negate = kwargs.get('negate', False)
         self.none_to_isnull = kwargs.get('none_to_isnull', False)
@@ -247,7 +247,8 @@ class Filter(Leaf):
         pairs = []
         for source, dest in self.source_dest_pairs():
             try:
-                many = any(dest.endswith(x) for x in self.multivalue_lookups)
+                many = any(dest.endswith("__%s" % x)
+                           for x in self.multivalue_lookups)
                 value = self.get_source_value(source, data, many)
                 pairs.append((source, value))
             except KeyError:
