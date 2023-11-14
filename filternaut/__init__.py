@@ -281,7 +281,8 @@ class Filter(Leaf):
         found during parsing (and if this filter has default=True).
         """
         dest = '{}__{}'.format(self.dest, self.default_lookup)
-        return (dest, self.default)
+        default = self.default() if callable(self.default) else self.default
+        return (dest, default)
 
     def get_source_value(self, key, data, many=False):
         """

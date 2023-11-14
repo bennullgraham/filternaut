@@ -379,6 +379,15 @@ class DefaultValueTests(TestCase):
 
         assert expected == actual
 
+    def test_default_can_be_callable(self):
+        filters = Filter('count', lookups=['lte', 'gte'], default=lambda: 3)
+        filters.parse({})  # no value for 'count'
+
+        expected = {'count__exact': 3}
+        actual = dict(flatten_qobj(filters.Q))
+
+        assert expected == actual
+
 
 class OptionalTests(TestCase):
 
