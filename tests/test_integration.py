@@ -1,7 +1,3 @@
-# -*- coding: utf8 -*-
-
-from __future__ import unicode_literals, print_function, absolute_import
-
 import json
 
 from django.contrib.auth.models import User
@@ -15,25 +11,27 @@ from filternaut.filters import CharFilter, ChoiceFilter, EmailFilter
 try:
     from django.test import RequestFactory
 except ImportError:
+
     class RequestFactory(Client):
         """
         Django 1.2 does not have RequestFactory. credit:
         https://djangosnippets.org/snippets/963/
         """
+
         def request(self, **request):
             """
             Similar to parent class, but returns the request object as soon as
             it has created it.
             """
             environ = {
-                'HTTP_COOKIE': self.cookies,
-                'PATH_INFO': '/',
-                'QUERY_STRING': '',
-                'REQUEST_METHOD': 'GET',
-                'SCRIPT_NAME': '',
-                'SERVER_NAME': 'testserver',
-                'SERVER_PORT': 80,
-                'SERVER_PROTOCOL': 'HTTP/1.1',
+                "HTTP_COOKIE": self.cookies,
+                "PATH_INFO": "/",
+                "QUERY_STRING": "",
+                "REQUEST_METHOD": "GET",
+                "SCRIPT_NAME": "",
+                "SERVER_NAME": "testserver",
+                "SERVER_PORT": 80,
+                "SERVER_PROTOCOL": "HTTP/1.1",
             }
             environ.update(self.defaults)
             environ.update(request)
@@ -42,15 +40,13 @@ except ImportError:
 
 def user_to_native(user):
     return dict(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        first_name=user.first_name)
+        id=user.id, username=user.username, email=user.email, first_name=user.first_name
+    )
 
 
 def resp_to_users(resp):
-    data = json.loads(resp.content.decode('utf-8'))
-    pks = [d['id'] for d in data]
+    data = json.loads(resp.content.decode("utf-8"))
+    pks = [d["id"] for d in data]
     users = []
     for pk in pks:
         # get+append to preserve order of resp'd data
@@ -59,11 +55,10 @@ def resp_to_users(resp):
 
 
 def my_view(request):
-    names = 'nomatch', 'Bret', 'Jemaine', 'Murray'
-    filters = (
-        CharFilter('username') | (
-            EmailFilter('email') &
-            ChoiceFilter('first_name', choices=zip(names, names))))
+    names = "nomatch", "Bret", "Jemaine", "Murray"
+    filters = CharFilter("username") | (
+        EmailFilter("email") & ChoiceFilter("first_name", choices=zip(names, names))
+    )
     filters.parse(request.GET)
 
     if filters.valid:
@@ -75,28 +70,24 @@ def my_view(request):
 
 
 class FullStackTests(TestCase):
-
     def setUp(self):
         self.factory = RequestFactory()
         self.u1 = User.objects.create(
-            username='one',
-            email='one@example.org',
-            first_name='Bret')
+            username="one", email="one@example.org", first_name="Bret"
+        )
         self.u2 = User.objects.create(
-            username='two',
-            email='two@example.org',
-            first_name='Jemaine')
+            username="two", email="two@example.org", first_name="Jemaine"
+        )
         self.u3 = User.objects.create(
-            username='three',
-            email='three@example.org',
-            first_name='Murray')
+            username="three", email="three@example.org", first_name="Murray"
+        )
 
     def test_request_no_params(self):
         """
         With no required filters, we present no filtering arguments and get all
         users returned.
         """
-        request = self.factory.get('/my_view/')
+        request = self.factory.get("/my_view/")
         resp = my_view(request)
         actual = resp_to_users(resp)
         expected = [self.u1, self.u2, self.u3]
@@ -108,7 +99,7 @@ class FullStackTests(TestCase):
         """
         Filternaut doesn't care if the 'foo' param is present
         """
-        request = self.factory.get('/my_view/?foo=bar')
+        request = self.factory.get("/my_view/?foo=bar")
         resp = my_view(request)
         actual = resp_to_users(resp)
         expected = [self.u1, self.u2, self.u3]
@@ -120,8 +111,8 @@ class FullStackTests(TestCase):
         """
         Filter on a non-existing username. Nothing comes back.
         """
-        data = {'username': 'nomatch'}
-        request = self.factory.get('/my_view/', data=data)
+        data = {"username": "nomatch"}
+        request = self.factory.get("/my_view/", data=data)
         resp = my_view(request)
         actual = resp_to_users(resp)
         expected = []
@@ -137,10 +128,8 @@ class FullStackTests(TestCase):
         Provide both ANDed filters, but with values that don't match anything.
         Expect no results.
         """
-        data = {
-            'email': 'nomatch@example.org',
-            'first_name': 'nomatch'}
-        request = self.factory.get('/my_view/', data=data)
+        data = {"email": "nomatch@example.org", "first_name": "nomatch"}
+        request = self.factory.get("/my_view/", data=data)
         resp = my_view(request)
         actual = resp_to_users(resp)
         expected = []
@@ -154,9 +143,10 @@ class FullStackTests(TestCase):
         first name. Expect no results.
         """
         data = {
-            'email': 'one@example.org',  # a match
-            'first_name': 'nomatch'}  # a non-match
-        request = self.factory.get('/my_view/', data=data)
+            "email": "one@example.org",  # a match
+            "first_name": "nomatch",
+        }  # a non-match
+        request = self.factory.get("/my_view/", data=data)
         resp = my_view(request)
         actual = resp_to_users(resp)
         expected = []
@@ -169,10 +159,8 @@ class FullStackTests(TestCase):
         Provide both ANDed filters. Both are matching. Expect one matching
         result.
         """
-        data = {
-            'email': 'one@example.org',
-            'first_name': 'Bret'}
-        request = self.factory.get('/my_view/', data=data)
+        data = {"email": "one@example.org", "first_name": "Bret"}
+        request = self.factory.get("/my_view/", data=data)
         resp = my_view(request)
         actual = resp_to_users(resp)
         expected = [self.u1]
@@ -184,13 +172,11 @@ class FullStackTests(TestCase):
         """
         Get some validation errors.
         """
-        data = {
-            'email': 'not an email',
-            'first_name': 'not a choice'}
-        request = self.factory.get('/my_view/', data=data)
+        data = {"email": "not an email", "first_name": "not a choice"}
+        request = self.factory.get("/my_view/", data=data)
         resp = my_view(request)
-        errors = json.loads(resp.content.decode('utf-8'))
+        errors = json.loads(resp.content.decode("utf-8"))
 
         assert resp.status_code == 400
-        assert 'email' in errors
-        assert 'first_name' in errors
+        assert "email" in errors
+        assert "first_name" in errors

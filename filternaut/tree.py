@@ -1,8 +1,3 @@
-# -*- coding: utf8 -*-
-
-from __future__ import unicode_literals, print_function, absolute_import
-from operator import or_, and_
-
 """
 This module ends up looking similar to django.utils.tree. It has a simpler
 design allowed by the simpler use case. In particular there are
@@ -14,9 +9,10 @@ Finally, there are separate leaf and tree classes. This increases sanity when
 these classes are extended to become filters.
 """
 
+from operator import or_, and_
+
 
 class Tree(object):
-
     # subclasses could specify a tree-subclass here. For example,
     # MyLeaf.tree_class = MyTree. A value of None will default to the current
     # class at the time of construction.
@@ -35,16 +31,15 @@ class Tree(object):
             yield r
 
     def __and__(self, other):
-        klass = getattr(self, 'tree_class') or self.__class__
+        klass = getattr(self, "tree_class") or self.__class__
         return klass(operator=and_, left=self, right=other)
 
     def __or__(self, other):
-        klass = getattr(self, 'tree_class') or self.__class__
+        klass = getattr(self, "tree_class") or self.__class__
         return klass(operator=or_, left=self, right=other)
 
 
 class Leaf(object):
-
     # subclasses could specify a tree-subclass here. For example,
     # MyLeaf.tree_class = MyTree.
     tree_class = Tree

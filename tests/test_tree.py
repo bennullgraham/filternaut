@@ -1,18 +1,15 @@
 # -*- coding: utf8 -*-
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 from operator import and_, or_
 from unittest import TestCase
 
 from filternaut import Filter, FilterTree, Optional
 from filternaut.tree import Leaf, Tree
-from six.moves import reduce
+from functools import reduce
 from tests.util import NopeFilter
 
 
 class OperatorTests(TestCase):
-
     def test_leaves_OR_into_trees(self):
         tree = Leaf() | Leaf()
         assert isinstance(tree, Tree)
@@ -44,22 +41,22 @@ class FilterTreeTests(TestCase):
     """
 
     def test_filters_OR_into_filtersets(self):
-        filters = Filter('afield') | Filter('anotherfield')
+        filters = Filter("afield") | Filter("anotherfield")
         assert isinstance(filters, FilterTree)
 
     def test_filters_AND_into_filtersets(self):
-        filters = Filter('afield') & Filter('anotherfield')
+        filters = Filter("afield") & Filter("anotherfield")
         assert isinstance(filters, FilterTree)
 
     def test_errors_from_filtertree(self):
         """
         FilterTree's errors should be the errors of the filters it contains.
         """
-        filters = NopeFilter('one') | NopeFilter('two') | NopeFilter('three')
+        filters = NopeFilter("one") | NopeFilter("two") | NopeFilter("three")
         filters.parse(dict(one=1, two=2, three=3))
-        assert 'one' in filters.errors
-        assert 'two' in filters.errors
-        assert 'three' in filters.errors
+        assert "one" in filters.errors
+        assert "two" in filters.errors
+        assert "three" in filters.errors
         assert not filters.valid
 
     def test_validity_from_filtertree(self):
@@ -67,7 +64,7 @@ class FilterTreeTests(TestCase):
         FilterTree's validity should be a proxy to the validities of the
         filters it contains.
         """
-        filters = Filter('one') | Filter('two') | Filter('three')
+        filters = Filter("one") | Filter("two") | Filter("three")
         filters.parse(dict())
         assert filters.valid
 
@@ -75,7 +72,7 @@ class FilterTreeTests(TestCase):
         """
         Combine Optional with Filters and FilterTrees in various combinations.
         """
-        f1, f2, f3, f4, f5 = map(Filter, ['1', '2', '3', '4', '5'])
+        f1, f2, f3, f4, f5 = map(Filter, ["1", "2", "3", "4", "5"])
         o1 = Optional(f1, f2)
         o2 = Optional(f3, f4)
 
@@ -86,8 +83,7 @@ class FilterTreeTests(TestCase):
         both_or = o1 | o2
         both_and = o1 & o2
 
-        filters_list = (left_or, left_and, right_or, right_and, both_or,
-                        both_and)
+        filters_list = (left_or, left_and, right_or, right_and, both_or, both_and)
         filters_with_123 = left_or, left_and, right_or, right_and
         filters_with_1234 = both_or, both_and
         for filters in filters_list:

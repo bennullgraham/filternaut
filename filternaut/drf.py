@@ -1,14 +1,11 @@
-# -*- coding: utf8 -*-
-
-from __future__ import unicode_literals
-
 try:
     from rest_framework.filters import BaseFilterBackend
     from rest_framework.exceptions import ParseError
 except ImportError:
     raise ImportError(
         "You must install Django REST Framework (pypi: "
-        "'djangorestframework') to use Filternaut's DRF filter backend.")
+        "'djangorestframework') to use Filternaut's DRF filter backend."
+    )
 
 
 class FilternautBackend(BaseFilterBackend):
@@ -22,7 +19,7 @@ class FilternautBackend(BaseFilterBackend):
     """
 
     #: The host view must define filters at this attribute.
-    filter_attr = 'filternaut_filters'
+    filter_attr = "filternaut_filters"
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -35,8 +32,10 @@ class FilternautBackend(BaseFilterBackend):
             filters = getattr(view, self.filter_attr)
         except AttributeError:
             raise AttributeError(
-                "View {} requires attribute '{}' "
-                "to use FilternautBackend".format(view, self.filter_attr))
+                "View {} requires attribute '{}' " "to use FilternautBackend".format(
+                    view, self.filter_attr
+                )
+            )
 
         if callable(filters):
             filters = filters(request)

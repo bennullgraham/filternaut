@@ -1,12 +1,9 @@
-# -*- coding: utf8 -*-
-
-from __future__ import unicode_literals
 from copy import deepcopy
 from operator import and_, or_
 
 from django.core.exceptions import ValidationError
+from functools import reduce
 from django.db.models import Q
-import six
 
 from filternaut.tree import Tree, Leaf
 
@@ -95,7 +92,7 @@ class Optional(FilterTree):
         if not rest:
             # TODO if left is a tree, walk it instead of complaining
             raise ValueError("Optional has no effect on a single filter")
-        right = six.moves.reduce(and_, rest)
+        right = reduce(and_, rest)
         super(Optional, self).__init__(False, operator, left, right)
 
     @property
@@ -109,11 +106,12 @@ class Optional(FilterTree):
         if any(missing) and any(present) and not all(present):
             # insert an additional error
             sources = sorted([f.source for f in filters])
-            if '__all__' not in errors:
-                errors['__all__'] = []
-            errors['__all__'].append(
-                'If any of {} are provided, all must be '
-                'provided'.format(', '.join(sources)))
+            if "__all__" not in errors:
+                errors["__all__"] = []
+            joined = ", ".join(sources)
+            errors["__all__"].append(
+                f"If any of {joined} are provided, all must be provided"
+            )
         else:
             for f in filters:
                 if f.required and f.missing:
@@ -136,19 +134,19 @@ class Filter(Leaf):
 
     def __init__(self, dest, **kwargs):
         self.dest = dest
-        self.source = kwargs.get('source', dest)
-        self.lookups = kwargs.get('lookups', ['exact'])
-        self.multivalue_lookups = kwargs.get('multivalue_lookups', ['in'])
-        self.required = kwargs.get('required', False)
-        self.negate = kwargs.get('negate', False)
-        self.none_to_isnull = kwargs.get('none_to_isnull', False)
+        self.source = kwargs.get("source", dest)
+        self.lookups = kwargs.get("lookups", ["exact"])
+        self.multivalue_lookups = kwargs.get("multivalue_lookups", ["in"])
+        self.required = kwargs.get("required", False)
+        self.negate = kwargs.get("negate", False)
+        self.none_to_isnull = kwargs.get("none_to_isnull", False)
 
         # None is a valid default -- consider exclude(groups=None) -- so use
         # the absence or presence of self.default to indicate whether a default
         # should be used.
-        if 'default' in kwargs:
-            self.default = kwargs['default']
-            self.default_lookup = kwargs.get('default_lookup', 'exact')
+        if "default" in kwargs:
+            self.default = kwargs["default"]
+            self.default_lookup = kwargs.get("default_lookup", "exact")
 
         self._filters = {}
         self._errors = {}
@@ -156,8 +154,8 @@ class Filter(Leaf):
         self.missing = False
 
         # accept lookups as a comma-separated string.
-        if isinstance(self.lookups, six.string_types):
-            self.lookups = self.lookups.split(',')
+        if isinstance(self.lookups, str):
+            self.lookups = self.lookups.split(",")
 
     def __invert__(self):
         """
@@ -180,15 +178,15 @@ class Filter(Leaf):
         dest_pairs, errors = self.dest_value_pairs(source_pairs)
 
         # handle default value
-        if not source_pairs and hasattr(self, 'default'):
-            dest_pairs = (self.default_dest_value_pair(), )
+        if not source_pairs and hasattr(self, "default"):
+            dest_pairs = (self.default_dest_value_pair(),)
 
         # if required, check if satisfied
         if not source_pairs and self.required:
             self.missing = True
             if self.source not in errors:
                 errors[self.source] = []
-            errors[self.source].append('This field is required')
+            errors[self.source].append("This field is required")
         else:
             # this allows a later parse() to undo an earlier missing=True
             self.missing = False
@@ -219,19 +217,19 @@ class Filter(Leaf):
         """
         pairs = []
         for lookup in self.lookups:
-            if lookup in (None, 'exact'):
+            if lookup in (None, "exact"):
                 source = self.source
                 dest = self.dest
             else:
-                source = '{}__{}'.format(self.source, lookup)
-                dest = '{}__{}'.format(self.dest, lookup)
+                source = f"{self.source}__{lookup}"
+                dest = f"{self.dest}__{lookup}"
             pairs.append((source, dest))
 
         # allow source data to omit the lookup if only one lookup listed.
         if len(pairs) == 1:
             lookup = self.lookups[0]
-            if lookup not in (None, 'exact'):
-                dest = '{}__{}'.format(self.dest, self.lookups[0])
+            if lookup not in (None, "exact"):
+                dest = f"{self.dest}__{self.lookups[0]}"
                 pairs.append((self.source, dest))
 
         return pairs
@@ -247,8 +245,7 @@ class Filter(Leaf):
         pairs = []
         for source, dest in self.source_dest_pairs():
             try:
-                many = any(dest.endswith("__%s" % x)
-                           for x in self.multivalue_lookups)
+                many = any(dest.endswith(f"__{x}") for x in self.multivalue_lookups)
                 value = self.get_source_value(source, data, many)
                 pairs.append((source, value))
             except KeyError:
@@ -280,7 +277,7 @@ class Filter(Leaf):
         Construct a default dest/value pair to be used if no source data was
         found during parsing (and if this filter has default=True).
         """
-        dest = '{}__{}'.format(self.dest, self.default_lookup)
+        dest = f"{self.dest}__{self.default_lookup}"
         default = self.default() if callable(self.default) else self.default
         return (dest, default)
 
@@ -293,7 +290,7 @@ class Filter(Leaf):
         """
         if many is False:
             return data[key]
-        elif hasattr(data, 'getlist'):  # Django querydict, multivaluedict
+        elif hasattr(data, "getlist"):  # Django querydict, multivaluedict
             if key not in data:
                 raise KeyError(repr(key))
             return data.getlist(key)
@@ -309,8 +306,8 @@ class Filter(Leaf):
         """
         if not self.parsed:
             raise ValueError(
-                "Must call parse() on this filter before "
-                "accessing this attribute")
+                "Must call parse() on this filter before " "accessing this attribute"
+            )
         return self._filters
 
     @property
@@ -321,7 +318,8 @@ class Filter(Leaf):
         """
         if not self.parsed:
             raise ValueError(
-                "Must call parse() on this filter before checking validity")
+                "Must call parse() on this filter before checking validity"
+            )
         return not self._errors
 
     @property
@@ -333,8 +331,7 @@ class Filter(Leaf):
         ``parse()`` has not been called.
         """
         if not self.parsed:
-            raise ValueError(
-                "Must call parse() on this filter before reading errors")
+            raise ValueError("Must call parse() on this filter before reading errors")
         return self._errors
 
     @property
@@ -344,8 +341,7 @@ class Filter(Leaf):
         definition. Cannot be read before ``parse()`` has been called.
         """
         if not self.parsed:
-            raise ValueError(
-                "Must call parse() on this filter before using Q")
+            raise ValueError("Must call parse() on this filter before using Q")
 
         dicts = [deepcopy(self.dict)]
 
@@ -358,10 +354,10 @@ class Filter(Leaf):
         # when making a filter.
         if self.none_to_isnull:
             for key, val in list(dicts[0].items()):
-                is_many = key.endswith('__in')
+                is_many = key.endswith("__in")
                 has_null = is_many and None in val
                 if is_many and has_null:
-                    lookup = '{}__isnull'.format(key[:-4])
+                    lookup = f"{key[:-4]}__isnull"
                     dicts.append({lookup: True})
                     val.remove(None)
                     # if the only value was None, we don't need the "__in" any
@@ -369,5 +365,5 @@ class Filter(Leaf):
                     if not val:
                         dicts[0].pop(key)
 
-        q = six.moves.reduce(or_, (Q(**d) for d in dicts))
+        q = reduce(or_, (Q(**d) for d in dicts))
         return ~q if self.negate else q

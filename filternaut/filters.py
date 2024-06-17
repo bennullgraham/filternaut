@@ -1,18 +1,28 @@
-# -*- coding: utf8 -*-
-
-from __future__ import absolute_import, unicode_literals
-
 from collections.abc import Iterable
 
-import six
-
-from django.forms import (BooleanField, CharField, ChoiceField, ComboField,
-                          DateField, DateTimeField, DecimalField, EmailField,
-                          FilePathField, FloatField, ImageField, IntegerField,
-                          MultipleChoiceField, MultiValueField,
-                          NullBooleanField, RegexField, SlugField,
-                          SplitDateTimeField, TimeField, TypedChoiceField,
-                          URLField)
+from django.forms import (
+    BooleanField,
+    CharField,
+    ChoiceField,
+    ComboField,
+    DateField,
+    DateTimeField,
+    DecimalField,
+    EmailField,
+    FilePathField,
+    FloatField,
+    ImageField,
+    IntegerField,
+    MultipleChoiceField,
+    MultiValueField,
+    NullBooleanField,
+    RegexField,
+    SlugField,
+    SplitDateTimeField,
+    TimeField,
+    TypedChoiceField,
+    URLField,
+)
 from filternaut import Filter
 
 # note IPAddressField, GenericIPAddressField and TypedMultipleChoiceField are
@@ -21,19 +31,37 @@ from filternaut import Filter
 
 
 __all__ = [
-    'BooleanFilter', 'CharFilter', 'ChoiceFilter', 'ComboFilter', 'DateFilter',
-    'DateTimeFilter', 'DecimalFilter', 'EmailFilter', 'FilePathFilter',
-    'FloatFilter', 'IPAddressFilter', 'ImageFilter', 'FieldFilter',
-    'IntegerFilter', 'MultiValueFilter', 'MultipleChoiceFilter',
-    'NullBooleanFilter', 'RegexFilter', 'SlugFilter', 'SplitDateTimeFilter',
-    'TimeFilter', 'TypedChoiceFilter', 'URLFilter']
+    "BooleanFilter",
+    "CharFilter",
+    "ChoiceFilter",
+    "ComboFilter",
+    "DateFilter",
+    "DateTimeFilter",
+    "DecimalFilter",
+    "EmailFilter",
+    "FilePathFilter",
+    "FloatFilter",
+    "IPAddressFilter",
+    "ImageFilter",
+    "FieldFilter",
+    "IntegerFilter",
+    "MultiValueFilter",
+    "MultipleChoiceFilter",
+    "NullBooleanFilter",
+    "RegexFilter",
+    "SlugFilter",
+    "SplitDateTimeFilter",
+    "TimeFilter",
+    "TypedChoiceFilter",
+    "URLFilter",
+]
 
 
 def is_listlike(val):
     """
     True if `val` is an iterable (list, tuple, ...) but not a string
     """
-    return isinstance(val, Iterable) and not isinstance(val, six.string_types)
+    return isinstance(val, Iterable) and not isinstance(val, str)
 
 
 class FieldFilter(Filter):
@@ -77,14 +105,14 @@ class RegexFilter(FieldFilter):
 class FilePathFilter(FieldFilter):
     def __init__(self, dest, path, *args, **kwargs):
         field = FilePathField(path=path)
-        super(FilePathFilter, self).__init__(dest, field=field,
-                                             *args, **kwargs)
+        super(FilePathFilter, self).__init__(dest, field=field, *args, **kwargs)
 
 
 class BooleanFilter(FieldFilter):
     """
     BooleanField required=True does not have sanely.
     """
+
     def __init__(self, dest, **kwargs):
         field = BooleanField(required=False)
         super(BooleanFilter, self).__init__(dest, field=field, **kwargs)
@@ -98,8 +126,8 @@ class ComboFilter(FieldFilter):
 
 # -- simple mixtures of fieldfilter and django fields.
 
-class FieldMixin(object):
 
+class FieldMixin(object):
     def __init__(self, dest, **kwargs):
         field = self.field_class()
         super(FieldMixin, self).__init__(dest, field=field, **kwargs)
@@ -180,15 +208,14 @@ try:
 except ImportError:
     pass
 else:
+
     class GenericIPAddressFilter(FieldMixin, FieldFilter):
         field_class = GenericIPAddressField
 
     class TypedMultipleChoiceFilter(FieldMixin, FieldFilter):
         field_class = TypedMultipleChoiceField
 
-    __all__.extend((
-        'GenericIPAddressFilter',
-        'TypedMultipleChoiceFilter'))
+    __all__.extend(("GenericIPAddressFilter", "TypedMultipleChoiceFilter"))
 
 try:
     # django 1.9 and later drop support for IPAddressField
@@ -196,7 +223,8 @@ try:
 except ImportError:
     pass
 else:
+
     class IPAddressFilter(FieldMixin, FieldFilter):
         field_class = IPAddressField
 
-    __all__.extend(('IPAddressField', ))
+    __all__.extend(("IPAddressField",))
