@@ -4,76 +4,162 @@
 #
 #    pip-compile requirements/maintainer.in
 #
+alabaster==0.7.16
+    # via sphinx
+babel==2.15.0
+    # via sphinx
+backports-tarfile==1.2.0
+    # via jaraco-context
 build==1.2.1
     # via pip-tools
+cachetools==5.3.3
+    # via tox
 certifi==2024.6.2
     # via requests
+cffi==1.16.0
+    # via cryptography
+chardet==5.2.0
+    # via tox
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via pip-tools
-coverage==4.2
+colorama==0.4.6
+    # via tox
+coverage==7.5.3
     # via -r requirements/maintainer.in
+cryptography==42.0.8
+    # via secretstorage
 distlib==0.3.8
     # via virtualenv
-docutils==0.21.2
-    # via sphinx
+docutils==0.20.1
+    # via
+    #   readme-renderer
+    #   sphinx
+    #   sphinx-rtd-theme
 filelock==3.15.1
     # via
     #   tox
     #   virtualenv
 idna==3.7
     # via requests
+imagesize==1.4.1
+    # via sphinx
+importlib-metadata==7.1.0
+    # via
+    #   keyring
+    #   twine
+jaraco-classes==3.4.0
+    # via keyring
+jaraco-context==5.3.0
+    # via keyring
+jaraco-functools==4.0.1
+    # via keyring
+jeepney==0.8.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==3.1.4
     # via sphinx
+keyring==25.2.1
+    # via twine
+markdown-it-py==3.0.0
+    # via rich
 markupsafe==2.1.5
     # via jinja2
+mdurl==0.1.2
+    # via markdown-it-py
+more-itertools==10.3.0
+    # via
+    #   jaraco-classes
+    #   jaraco-functools
+nh3==0.2.17
+    # via readme-renderer
 packaging==24.1
     # via
     #   build
+    #   pyproject-api
+    #   sphinx
     #   tox
 pip-tools==7.4.1
     # via -r requirements/maintainer.in
 pkginfo==1.11.1
     # via twine
 platformdirs==4.2.2
-    # via virtualenv
+    # via
+    #   tox
+    #   virtualenv
 pluggy==1.5.0
     # via tox
-py==1.11.0
-    # via tox
+pycparser==2.22
+    # via cffi
 pygments==2.18.0
-    # via sphinx
+    # via
+    #   readme-renderer
+    #   rich
+    #   sphinx
+pyproject-api==1.6.1
+    # via tox
 pyproject-hooks==1.1.0
     # via
     #   build
     #   pip-tools
+readme-renderer==43.0
+    # via twine
 requests==2.32.3
+    # via
+    #   requests-toolbelt
+    #   sphinx
+    #   twine
+requests-toolbelt==1.0.0
+    # via twine
+rfc3986==2.0.0
+    # via twine
+rich==13.7.1
     # via twine
 ruff==0.4.9
     # via -r requirements/maintainer.in
-six==1.16.0
-    # via tox
-sphinx==1.2.3
+secretstorage==3.3.3
+    # via keyring
+snowballstemmer==2.2.0
+    # via sphinx
+sphinx==7.3.7
     # via
     #   -r requirements/maintainer.in
     #   sphinx-rtd-theme
-sphinx-rtd-theme==0.1.6
+    #   sphinxcontrib-jquery
+sphinx-rtd-theme==2.0.0
     # via -r requirements/maintainer.in
-toml==0.10.2
-    # via tox
-tox==3.16.1
+sphinxcontrib-applehelp==1.0.8
+    # via sphinx
+sphinxcontrib-devhelp==1.0.6
+    # via sphinx
+sphinxcontrib-htmlhelp==2.0.5
+    # via sphinx
+sphinxcontrib-jquery==4.1
+    # via sphinx-rtd-theme
+sphinxcontrib-jsmath==1.0.1
+    # via sphinx
+sphinxcontrib-qthelp==1.0.7
+    # via sphinx
+sphinxcontrib-serializinghtml==1.1.10
+    # via sphinx
+tox==4.15.1
     # via -r requirements/maintainer.in
-twine==1.4.0
+twine==5.1.0
     # via -r requirements/maintainer.in
 urllib3==2.2.1
-    # via requests
+    # via
+    #   requests
+    #   twine
 virtualenv==20.26.2
     # via tox
-wheel==0.24.0
+wheel==0.43.0
     # via
     #   -r requirements/maintainer.in
     #   pip-tools
+zipp==3.19.2
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
