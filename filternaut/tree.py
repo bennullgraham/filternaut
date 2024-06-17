@@ -10,6 +10,7 @@ these classes are extended to become filters.
 """
 
 from operator import or_, and_
+from copy import deepcopy
 
 
 class Tree(object):
@@ -25,10 +26,8 @@ class Tree(object):
         self.right = right
 
     def __iter__(self):
-        for l in self.left:
-            yield l
-        for r in self.right:
-            yield r
+        yield from self.left
+        yield from self.right
 
     def __and__(self, other):
         klass = getattr(self, "tree_class") or self.__class__
@@ -37,6 +36,9 @@ class Tree(object):
     def __or__(self, other):
         klass = getattr(self, "tree_class") or self.__class__
         return klass(operator=or_, left=self, right=other)
+
+    def copy(self):
+        return deepcopy(self)
 
 
 class Leaf(object):
@@ -52,3 +54,6 @@ class Leaf(object):
 
     def __or__(self, other):
         return self.tree_class(operator=or_, left=self, right=other)
+
+    def copy(self):
+        return deepcopy(self)

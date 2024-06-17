@@ -161,7 +161,7 @@ class Filter(Leaf):
         """
         Invert the sense of this filter.
         """
-        inverted = deepcopy(self)
+        inverted = self.copy()
         inverted.negate = not self.negate
         return inverted
 
