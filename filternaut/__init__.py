@@ -19,7 +19,7 @@ class FilterTree(Tree):
 
     def __init__(self, negate=False, *args, **kwargs):
         self.negate = negate
-        super(FilterTree, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __invert__(self):
         inverted = deepcopy(self)
@@ -95,11 +95,11 @@ class Optional(FilterTree):
             # TODO if left is a tree, walk it instead of complaining
             raise ValueError("Optional has no effect on a single filter")
         right = reduce(and_, rest)
-        super(Optional, self).__init__(False, operator, left, right)
+        super().__init__(False, operator, left, right)
 
     @property
     def errors(self):
-        errors = super(Optional, self).errors
+        errors = super().errors
         filters = list(self)
         missing = [f.missing for f in filters if f.required]
         present = [f.dict for f in filters]

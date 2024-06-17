@@ -78,7 +78,7 @@ class FieldFilter(Filter):
 
     def __init__(self, dest, field, **kwargs):
         self.field = field
-        super(FieldFilter, self).__init__(dest, **kwargs)
+        super().__init__(dest, **kwargs)
 
     def clean(self, value):
         if is_listlike(value):
@@ -93,19 +93,19 @@ class FieldFilter(Filter):
 class ChoiceFilter(FieldFilter):
     def __init__(self, dest, choices, *args, **kwargs):
         field = ChoiceField(choices=choices)
-        super(ChoiceFilter, self).__init__(dest, field=field, *args, **kwargs)
+        super().__init__(dest, field=field, *args, **kwargs)
 
 
 class RegexFilter(FieldFilter):
     def __init__(self, dest, regex, *args, **kwargs):
         field = RegexField(regex=regex)
-        super(RegexFilter, self).__init__(dest, field=field, *args, **kwargs)
+        super().__init__(dest, field=field, *args, **kwargs)
 
 
 class FilePathFilter(FieldFilter):
     def __init__(self, dest, path, *args, **kwargs):
         field = FilePathField(path=path)
-        super(FilePathFilter, self).__init__(dest, field=field, *args, **kwargs)
+        super().__init__(dest, field=field, *args, **kwargs)
 
 
 class BooleanFilter(FieldFilter):
@@ -115,13 +115,13 @@ class BooleanFilter(FieldFilter):
 
     def __init__(self, dest, **kwargs):
         field = BooleanField(required=False)
-        super(BooleanFilter, self).__init__(dest, field=field, **kwargs)
+        super().__init__(dest, field=field, **kwargs)
 
 
 class ComboFilter(FieldFilter):
     def __init__(self, dest, fields, **kwargs):
         field = ComboField(fields=fields)
-        super(ComboFilter, self).__init__(dest, field=field, **kwargs)
+        super().__init__(dest, field=field, **kwargs)
 
 
 # -- simple mixtures of fieldfilter and django fields.
@@ -130,7 +130,7 @@ class ComboFilter(FieldFilter):
 class FieldMixin(object):
     def __init__(self, dest, **kwargs):
         field = self.field_class()
-        super(FieldMixin, self).__init__(dest, field=field, **kwargs)
+        super().__init__(dest, field=field, **kwargs)
 
 
 class CharFilter(FieldMixin, FieldFilter):
