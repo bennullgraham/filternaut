@@ -59,7 +59,7 @@ def my_view(request):
     filters = CharFilter("username") | (
         EmailFilter("email") & ChoiceFilter("first_name", choices=zip(names, names))
     )
-    filters.parse(request.GET)
+    filters = filters.parse(request.GET)
 
     if filters.valid:
         users = User.objects.filter(filters.Q)

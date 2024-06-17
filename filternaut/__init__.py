@@ -60,8 +60,10 @@ class FilterTree(Tree):
         Ask all filters to look through ``data`` and thereby configure
         themselves.
         """
-        for fltr in self:
-            fltr.parse(data)
+        copy = self.copy()
+        for fltr in copy:
+            fltr._parse(data)
+        return copy
 
 
 class Optional(FilterTree):
@@ -168,11 +170,23 @@ class Filter(Leaf):
     def parse(self, data):
         """
         Look through the provided dict-like data for keys which match this
-        Filter's source.  This includes keys containg lookup affixes such as
+        Filter's source. This includes keys containing lookup affixes such as
         'contains' or 'lte'.
 
         Once this method has been called, the ``errors``, ``valid`` and ``Q``
         attributes become usable.
+
+        A copy of the filter object is returned.
+        """
+        copy = self.copy()
+        copy._parse(data)
+        return copy
+
+    def _parse(self, data):
+        """
+        Parse ``data``. See parse.
+
+        Mutates the current filter object.
         """
         source_pairs = self.source_value_pairs(data)
         dest_pairs, errors = self.dest_value_pairs(source_pairs)

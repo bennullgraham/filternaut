@@ -53,7 +53,7 @@ class FilterTreeTests(TestCase):
         FilterTree's errors should be the errors of the filters it contains.
         """
         filters = NopeFilter("one") | NopeFilter("two") | NopeFilter("three")
-        filters.parse(dict(one=1, two=2, three=3))
+        filters = filters.parse(dict(one=1, two=2, three=3))
         assert "one" in filters.errors
         assert "two" in filters.errors
         assert "three" in filters.errors
@@ -65,7 +65,7 @@ class FilterTreeTests(TestCase):
         filters it contains.
         """
         filters = Filter("one") | Filter("two") | Filter("three")
-        filters.parse(dict())
+        filters = filters.parse(dict())
         assert filters.valid
 
     def test_Optional_combines_well(self):

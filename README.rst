@@ -26,7 +26,7 @@ Quickstart
         CharFilter('username', lookups=['icontains']))
 
     # they can read their values from anything dict-like
-    filters.parse(request.GET)
+    filters = filters.parse(request.GET)
 
     # and have a form-like 'validity pattern'.
     if filters.valid:

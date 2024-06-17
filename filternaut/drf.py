@@ -32,15 +32,13 @@ class FilternautBackend(BaseFilterBackend):
             filters = getattr(view, self.filter_attr)
         except AttributeError:
             raise AttributeError(
-                "View {} requires attribute '{}' " "to use FilternautBackend".format(
-                    view, self.filter_attr
-                )
+                f"View {view} requires attribute '{self.filter_attr}' to use FilternautBackend"
             )
 
         if callable(filters):
             filters = filters(request)
 
-        filters.parse(request.query_params)
+        filters = filters.parse(request.query_params)
 
         if filters.valid:
             return self.is_valid(request, queryset, filters)

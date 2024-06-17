@@ -44,7 +44,7 @@ class FilterTests(TestCase):
     def test_required_filter_is_satisfied_by_one_key_being_present(self):
         f = Filter("fieldname", required=True, lookups=["gte"])
         data = {"fieldname__gte": "foo", "fieldname__lte": "bar"}
-        f.parse(data)
+        f = f.parse(data)
         assert not f.errors
 
     def test_required_filter_requires_at_least_one_key(self):
@@ -55,7 +55,7 @@ class FilterTests(TestCase):
         """
         f = Filter("fieldname", required=True, lookups=["contains"])
         data = {"fieldname__gte": "foo", "fieldname__lte": "bar"}
-        f.parse(data)
+        f = f.parse(data)
         assert f.errors
         assert "fieldname" in f.errors
 
@@ -81,7 +81,7 @@ class FilterTests(TestCase):
             | Filter(source="search", dest="email")
             | Filter(source="search", dest="name")
         )
-        filters.parse(dict(search="mynbaev-scheiner"))
+        filters = filters.parse(dict(search="mynbaev-scheiner"))
         expected = dict(
             username="mynbaev-scheiner",
             email="mynbaev-scheiner",
@@ -96,7 +96,9 @@ class FilterTests(TestCase):
             | Filter(source="nominee_2", dest="field")
             | Filter(source="nominee_3", dest="field")
         )
-        filters.parse(dict(nominee_1="one", nominee_2="two", nominee_3="three"))
+        filters = filters.parse(
+            dict(nominee_1="one", nominee_2="two", nominee_3="three")
+        )
         expected = dict(field="three")  # last one wins
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
@@ -108,7 +110,7 @@ class FilterTests(TestCase):
         """
         filters = Filter("name")
         data = MultiValueDict(dict(name=["foo", "bar"]))
-        filters.parse(data)
+        filters = filters.parse(data)
         expected = dict(name="bar")  # last one wins
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
@@ -120,7 +122,7 @@ class FilterTests(TestCase):
         """
         filters = Filter("field", lookups=["in"])
         data = MultiValueDict(dict(field=["foo", "bar"]))
-        filters.parse(data)
+        filters = filters.parse(data)
         expected = dict(field__in=["foo", "bar"])
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
@@ -129,13 +131,13 @@ class FilterTests(TestCase):
         filters = Filter("field", lookups=["exact", "in"])
 
         data = MultiValueDict(dict(field=["foo", "bar"]))
-        filters.parse(data)
+        filters = filters.parse(data)
         expected = dict(field="bar")  # last one wins
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
 
         data = MultiValueDict(dict(field__in=["foo", "bar"]))
-        filters.parse(data)
+        filters = filters.parse(data)
         expected = dict(field__in=["foo", "bar"])
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
@@ -175,7 +177,7 @@ class ParsingTests(TestCase):
     def test_parse_simple_source(self):
         filter = Filter("word")
         data = {"word": "a_value", "unrelated_key": ""}
-        filter.parse(data)
+        filter = filter.parse(data)
 
         assert not filter.errors
         assert "word" in filter._filters
@@ -185,7 +187,7 @@ class ParsingTests(TestCase):
         filter = Filter("word", lookups=["gte", "gt", "lte", "lt"])
         data = {"word__gte": 1, "word__gt": 2, "word__lte": 3, "word__lt": 4}
 
-        filter.parse(data)
+        filter = filter.parse(data)
 
         assert not filter.errors
         for key in data:
@@ -215,7 +217,7 @@ class ParsingTests(TestCase):
             "f3__gt": "fourth",
             "relationship__spanning__id": "fifth",
         }
-        filters.parse(data)
+        filters = filters.parse(data)
         actual = dict(flatten_qobj(filters.Q))
         assert expected == actual
         assert filters.valid
@@ -226,11 +228,11 @@ class FieldFilterTests(TestCase):
         choices = (("alai", "Alai"), ("petra", "Petra"))
 
         filter = ChoiceFilter(choices=choices, dest="name")
-        filter.parse({"name": "bean"})
+        filter = filter.parse({"name": "bean"})
         assert filter.errors
 
         filter = ChoiceFilter(choices=choices, dest="name")
-        filter.parse({"name": "alai"})
+        filter = filter.parse({"name": "alai"})
         assert not filter.errors
 
     def test_choicefilter_instantiation_styles(self):
@@ -252,12 +254,12 @@ class FieldFilterTests(TestCase):
 
     def test_regexfilter(self):
         filter = RegexFilter("fieldname", r"\d+")
-        filter.parse({"fieldname": "alpha"})
+        filter = filter.parse({"fieldname": "alpha"})
         assert filter.errors
         assert "fieldname" in filter.errors
 
         filter = RegexFilter("fieldname", r"\d+")
-        filter.parse({"fieldname": "1008346"})
+        filter = filter.parse({"fieldname": "1008346"})
         assert not filter.errors
         assert filter.valid
 
@@ -281,12 +283,12 @@ class FieldFilterTests(TestCase):
         valids = "aaa", "aaaa"
 
         for invalid in invalids:
-            filter.parse({"fieldname": invalid})
+            filter = filter.parse({"fieldname": invalid})
             assert filter.errors
             assert "fieldname" in filter.errors
 
         for valid in valids:
-            filter.parse({"fieldname": valid})
+            filter = filter.parse({"fieldname": valid})
             assert not filter.errors
             assert filter.valid
 
@@ -336,7 +338,7 @@ class FieldFilterTests(TestCase):
             "fieldname": "single value",
             "fieldname__in": ["multiple", "values"],
         }
-        f.parse(data)
+        f = f.parse(data)
         actual = dict(flatten_qobj(f.Q))
         assert expected == actual
 
@@ -344,7 +346,7 @@ class FieldFilterTests(TestCase):
 class DefaultValueTests(TestCase):
     def test_default_value_used_if_no_sourcedata_found(self):
         filters = Filter("count", lookups=["lte", "gte"], default=3)
-        filters.parse({})  # no value for 'count'
+        filters = filters.parse({})  # no value for 'count'
 
         expected = {"count__exact": 3}
         actual = dict(flatten_qobj(filters.Q))
@@ -357,7 +359,7 @@ class DefaultValueTests(TestCase):
 
     def test_other_lookups_ignored_when_default_used(self):
         filters = Filter("count", lookups=["lte", "gte"], default=3)
-        filters.parse({})  # no value for 'count'
+        filters = filters.parse({})  # no value for 'count'
 
         keys = dict(flatten_qobj(filters.Q)).keys()
 
@@ -368,7 +370,7 @@ class DefaultValueTests(TestCase):
         filters = Filter(
             "count", lookups=["lte", "gte"], default=3, default_lookup="gt"
         )
-        filters.parse({})  # no value for 'count'
+        filters = filters.parse({})  # no value for 'count'
 
         expected = {"count__gt": 3}
         actual = dict(flatten_qobj(filters.Q))
@@ -379,7 +381,7 @@ class DefaultValueTests(TestCase):
         filters = Filter(
             "count", lookups=["lte", "gte"], default=3, default_lookup="foobarbaz"
         )
-        filters.parse({"count__gte": 4})
+        filters = filters.parse({"count__gte": 4})
 
         expected = {"count__gte": 4}
         actual = dict(flatten_qobj(filters.Q))
@@ -388,7 +390,7 @@ class DefaultValueTests(TestCase):
 
     def test_default_can_be_callable(self):
         filters = Filter("count", lookups=["lte", "gte"], default=lambda: 3)
-        filters.parse({})  # no value for 'count'
+        filters = filters.parse({})  # no value for 'count'
 
         expected = {"count__exact": 3}
         actual = dict(flatten_qobj(filters.Q))
@@ -405,52 +407,52 @@ class OptionalTests(TestCase):
 
     def test_no_values_present(self):
         data = dict()  # no data
-        self.filters.parse(data)
-        assert self.filters.valid
+        filters = self.filters.parse(data)
+        assert filters.valid
 
     def test_all_values_present(self):
         data = dict(one=1, two=2, three=3)
-        self.filters.parse(data)
-        assert self.filters.valid
+        filters = self.filters.parse(data)
+        assert filters.valid
 
     def test_only_required_values_present(self):
         data = dict(one=1, three=3)
-        self.filters.parse(data)
-        assert self.filters.valid
+        filters = self.filters.parse(data)
+        assert filters.valid
 
     def test_only_nonrequired_values_present(self):
         data = dict(two=2)
-        self.filters.parse(data)
-        assert not self.filters.valid
-        assert "one" in self.filters.errors
-        assert "three" in self.filters.errors
-        assert "__all__" in self.filters.errors
+        filters = self.filters.parse(data)
+        assert not filters.valid
+        assert "one" in filters.errors
+        assert "three" in filters.errors
+        assert "__all__" in filters.errors
 
     def test_one_required_filter_missing(self):
         data = dict(two=2, three=3)
-        self.filters.parse(data)
-        assert not self.filters.valid
-        assert "one" in self.filters.errors
-        assert "three" not in self.filters.errors
-        assert "__all__" in self.filters.errors
+        filters = self.filters.parse(data)
+        assert not filters.valid
+        assert "one" in filters.errors
+        assert "three" not in filters.errors
+        assert "__all__" in filters.errors
 
     def test_ANDed_with_unrelated(self):
         filters = self.filters & self.unrelated
 
         data = dict()  # no data
-        filters.parse(data)
+        filters = filters.parse(data)
         assert filters.valid
 
         data = dict(one=1, three=3)  # all required data
-        filters.parse(data)
+        filters = filters.parse(data)
         assert filters.valid
 
         data = dict(ten=10)  # only some unrelated
-        filters.parse(data)
+        filters = filters.parse(data)
         assert filters.valid
 
         data = dict(ten=10, eleven=11, twelve=12)  # only all unrelated
-        filters.parse(data)
+        filters = filters.parse(data)
         assert filters.valid
 
     def test_validation_errors_are_not_silenced(self):
@@ -460,13 +462,13 @@ class OptionalTests(TestCase):
             NopeFilter("c"),
         )
         data = dict(a=1, b=2, c=3)
-        filters.parse(data)
+        filters = filters.parse(data)
         assert "a" in filters.errors
         assert "b" in filters.errors
         assert "c" in filters.errors
 
         data = dict()
-        filters.parse(data)
+        filters = filters.parse(data)
         assert not filters.errors
 
 
@@ -475,7 +477,7 @@ def boolean_tests():
 
     valid_values = "1", "0", "true", "false", "True", "False", True, False
     for value in valid_values:
-        filter.parse(dict(approved=value))
+        filter = filter.parse(dict(approved=value))
         assert filter.valid
 
 
@@ -488,7 +490,7 @@ class MultiValueWithNoneTests(TestCase):
             field=IntegerField(required=False),
         )
         data = MultiValueDict(data)
-        filter.parse(data)
+        filter = filter.parse(data)
         assert filter.valid
         return dict(filter.Q.children)
 
