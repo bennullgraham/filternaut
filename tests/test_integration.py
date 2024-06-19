@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.test import TestCase, Client
 
 from filternaut.filters import CharFilter, ChoiceFilter, EmailFilter
+from filternaut.exceptions import InvalidData
 
 
 try:
@@ -59,14 +60,13 @@ def my_view(request):
     filters = CharFilter("username") | (
         EmailFilter("email") & ChoiceFilter("first_name", choices=zip(names, names))
     )
-    filters = filters.parse(request.GET)
-
-    if filters.valid:
-        users = User.objects.filter(filters.Q)
+    try:
+        query = filters.parse(request.GET)
+        users = User.objects.filter(query)
         native = [user_to_native(u) for u in users]
         return HttpResponse(json.dumps(native))
-    else:
-        return HttpResponseBadRequest(json.dumps(filters.errors))
+    except InvalidData as ex:
+        return HttpResponseBadRequest(json.dumps(ex.errors))
 
 
 class FullStackTests(TestCase):

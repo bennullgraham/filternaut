@@ -4,6 +4,7 @@ from operator import and_, or_
 from django.core.exceptions import ValidationError
 from functools import reduce
 from django.db.models import Q
+from filternaut.exceptions import InvalidData
 
 from filternaut.tree import Tree, Leaf
 
@@ -26,44 +27,28 @@ class FilterTree(Tree):
         inverted.negate = not self.negate
         return inverted
 
-    @property
-    def valid(self):
-        """
-        A boolean indicating whether all filters parsed successfully. Cannot be
-        read before ``parse()`` has been called.
-        """
-        return not self.errors
-
-    @property
-    def errors(self):
-        """
-        A dictionary of errors met while parsing. The errors are keyed by their
-        field's source value. Each key's value is a list of errors.
-
-        ``errors`` cannot be read before ``parse()`` has been called.
-        """
-        errors = self.left.errors
-        errors.update(self.right.errors)
-        return errors
-
-    @property
-    def Q(self):
-        """
-        A Django "Q" object, built by combining input data with the filter
-        definitions. Cannot be read before ``parse()`` has been called.
-        """
-        q = self.operator(self.left.Q, self.right.Q)
-        return ~q if self.negate else q
-
     def parse(self, data):
         """
         Ask all filters to look through ``data`` and thereby configure
         themselves.
         """
-        copy = self.copy()
-        for fltr in copy:
-            fltr._parse(data)
-        return copy
+        errors = {}
+        # do this with two try/except so we can collect errors from both
+        # branches
+        try:
+            left_q = self.left.parse(data)
+        except InvalidData as ex:
+            errors.update(ex.errors)
+
+        try:
+            right_q = self.right.parse(data)
+        except InvalidData as ex:
+            errors.update(ex.errors)
+
+        if errors:
+            raise InvalidData(errors=errors)
+
+        return self.operator(left_q, right_q)
 
 
 class Optional(FilterTree):
@@ -81,7 +66,8 @@ class Optional(FilterTree):
 
         Optional(
             Filter('first_name', required=True),
-            Filter('last_name', required=True))
+            Filter('last_name', required=True),
+        )
 
     Generally, filters underneath Optional will have required=True, however it
     isn't necessary; consider adding 'middle name' to the above example.
@@ -97,29 +83,59 @@ class Optional(FilterTree):
         right = reduce(and_, rest)
         super().__init__(False, operator, left, right)
 
-    @property
-    def errors(self):
-        errors = super().errors
+    def parse(self, data):
+        """
+        Return Q-object for ``data`` per the class docstring.
+
+        This does the same thing as the regular tree's parse() method -- loop
+        the children, combining the queries or errors so they can be returned
+        collectively.
+
+        Before returning the query or raising the errors as usual, there is an
+        additional step. Some errors may be silenced, or an error added, based
+        on book-keeping of 'required' and 'missing' flags during the preceding
+        loop.
+        """
         filters = list(self)
-        missing = [f.missing for f in filters if f.required]
-        present = [f.dict for f in filters]
+        errors = {}
+        query = Q()
+        any_has_value = False
+        required_and_missing = {}
+
+        # this is the same as the regular parse(), but with book-keeping of
+        # any_has_value and required_and_missing
+        for filter in filters:
+            try:
+                this_query = filter.parse(data)
+                if this_query:
+                    any_has_value = True
+                    required_and_missing[filter] = False
+                query = self.operator(query, this_query)
+            except InvalidData as ex:
+                relevant_errors = ex.errors.get(filter.source, {})
+                # TODO find a less terrible way of determining this
+                is_missing = "This field is required" in relevant_errors
+                required_and_missing[filter] = filter.required and is_missing
+                errors.update(ex.errors)
 
         # some filters have values, but not all required filters have values.
-        if any(missing) and any(present) and not all(present):
-            # insert an additional error
-            sources = sorted([f.source for f in filters])
+        if any_has_value and any(required_and_missing.values()):
             if "__all__" not in errors:
                 errors["__all__"] = []
-            joined = ", ".join(sources)
+            sources = ", ".join(sorted(f.source for f in filters))
             errors["__all__"].append(
-                f"If any of {joined} are provided, all must be provided"
+                f"If any of {sources} are provided, all must be provided"
             )
-        else:
-            for f in filters:
-                if f.required and f.missing:
-                    del errors[f.source]
 
-        return errors
+        else:
+            to_silence = [f for f, r_and_m in required_and_missing.items() if r_and_m]
+            for filter in to_silence:
+                del errors[filter.source]
+
+        if errors:
+            raise InvalidData(errors)
+
+        return query
 
 
 class Filter(Leaf):
@@ -150,11 +166,6 @@ class Filter(Leaf):
             self.default = kwargs["default"]
             self.default_lookup = kwargs.get("default_lookup", "exact")
 
-        self._filters = {}
-        self._errors = {}
-        self.parsed = False
-        self.missing = False
-
         # accept lookups as a comma-separated string.
         if isinstance(self.lookups, str):
             self.lookups = self.lookups.split(",")
@@ -167,26 +178,19 @@ class Filter(Leaf):
         inverted.negate = not self.negate
         return inverted
 
-    def parse(self, data):
+    def parse_to_dict(self, data):
         """
         Look through the provided dict-like data for keys which match this
         Filter's source. This includes keys containing lookup affixes such as
         'contains' or 'lte'.
 
-        Once this method has been called, the ``errors``, ``valid`` and ``Q``
-        attributes become usable.
+        A dictionary of values ready to be queried is returned. For example,
 
-        A copy of the filter object is returned.
-        """
-        copy = self.copy()
-        copy._parse(data)
-        return copy
+            {"created_date__gte": "2020-01-01..."}
 
-    def _parse(self, data):
-        """
-        Parse ``data``. See parse.
-
-        Mutates the current filter object.
+        These can be used with Django's ORM by unpacking into filter(), or you
+        can get a Q object representing the same query by calling parse(data)
+        rather than parse_to_dict(data).
         """
         source_pairs = self.source_value_pairs(data)
         dest_pairs, errors = self.dest_value_pairs(source_pairs)
@@ -197,17 +201,40 @@ class Filter(Leaf):
 
         # if required, check if satisfied
         if not source_pairs and self.required:
-            self.missing = True
             if self.source not in errors:
                 errors[self.source] = []
             errors[self.source].append("This field is required")
-        else:
-            # this allows a later parse() to undo an earlier missing=True
-            self.missing = False
 
-        self.parsed = True
-        self._filters = dict(dest_pairs)
-        self._errors = errors
+        if errors:
+            raise InvalidData(errors=errors)
+
+        return dict(dest_pairs)
+
+    def parse(self, data):
+        dicts = [self.parse_to_dict(data)]
+
+        # Django, via SQL, does not do what you might expect with
+        # .filter(rank__in=[1, 2, None]). This doesn't give you things with
+        # rank 1, 2 or null -- you just get things with rank 1 and 2. Instead
+        # SQL wants you to make an explicit "in or is null" check. For
+        # consistency with Django and SQL, filternaut also behaves this way by
+        # default. If you don't want this behaviour, argue none_to_isnull=True
+        # when making a filter.
+        if self.none_to_isnull:
+            for key, val in list(dicts[0].items()):
+                is_many = key.endswith("__in")
+                has_null = is_many and None in val
+                if is_many and has_null:
+                    lookup = f"{key[:-4]}__isnull"
+                    dicts.append({lookup: True})
+                    val.remove(None)
+                    # if the only value was None, we don't need the "__in" any
+                    # more.
+                    if not val:
+                        dicts[0].pop(key)
+
+        q = reduce(or_, (Q(**d) for d in dicts))
+        return ~q if self.negate else q
 
     def clean(self, value):
         """
@@ -311,73 +338,3 @@ class Filter(Leaf):
         else:
             # only a single value, but many=True, so return as list.
             return [data[key]]
-
-    @property
-    def dict(self):
-        """
-        A dictionary representation of this Filter's filter configuration.
-        Cannot be read before ``parse()`` has been called.
-        """
-        if not self.parsed:
-            raise ValueError(
-                "Must call parse() on this filter before " "accessing this attribute"
-            )
-        return self._filters
-
-    @property
-    def valid(self):
-        """
-        A boolean indicating whether this Filter registered any errors during
-        parsing. Raises a ValueError if ``parse()`` has not been called.
-        """
-        if not self.parsed:
-            raise ValueError(
-                "Must call parse() on this filter before checking validity"
-            )
-        return not self._errors
-
-    @property
-    def errors(self):
-        """
-        A dictionary of errors (keyed by source) listing any problems
-        encountered during parsing. Typical entries include validation errors
-        and failures to provide values where required.  Raises a ValueError if
-        ``parse()`` has not been called.
-        """
-        if not self.parsed:
-            raise ValueError("Must call parse() on this filter before reading errors")
-        return self._errors
-
-    @property
-    def Q(self):
-        """
-        A Django "Q" object, built by combining input data with this filter's
-        definition. Cannot be read before ``parse()`` has been called.
-        """
-        if not self.parsed:
-            raise ValueError("Must call parse() on this filter before using Q")
-
-        dicts = [deepcopy(self.dict)]
-
-        # Django, via SQL, does not do what you might expect with
-        # .filter(rank__in=[1, 2, None]). This doesn't give you things with
-        # rank 1, 2 or null -- you just get things with rank 1 and 2. Instead
-        # SQL wants you to make an explicit "in or is null" check. For
-        # consistency with Django and SQL, filternaut also behaves this way by
-        # default. If you don't want this behaviour, argue none_to_isnull=True
-        # when making a filter.
-        if self.none_to_isnull:
-            for key, val in list(dicts[0].items()):
-                is_many = key.endswith("__in")
-                has_null = is_many and None in val
-                if is_many and has_null:
-                    lookup = f"{key[:-4]}__isnull"
-                    dicts.append({lookup: True})
-                    val.remove(None)
-                    # if the only value was None, we don't need the "__in" any
-                    # more.
-                    if not val:
-                        dicts[0].pop(key)
-
-        q = reduce(or_, (Q(**d) for d in dicts))
-        return ~q if self.negate else q

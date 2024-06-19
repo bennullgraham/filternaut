@@ -1,12 +1,12 @@
-# -*- coding: utf8 -*-
-
+import pytest
 from operator import and_, or_
 from unittest import TestCase
 
 from filternaut import Filter, FilterTree, Optional
+from filternaut.exceptions import InvalidData
 from filternaut.tree import Leaf, Tree
 from functools import reduce
-from tests.util import NopeFilter
+from tests.util import NopeFilter, assert_parsed_ok
 
 
 class OperatorTests(TestCase):
@@ -53,11 +53,11 @@ class FilterTreeTests(TestCase):
         FilterTree's errors should be the errors of the filters it contains.
         """
         filters = NopeFilter("one") | NopeFilter("two") | NopeFilter("three")
-        filters = filters.parse(dict(one=1, two=2, three=3))
-        assert "one" in filters.errors
-        assert "two" in filters.errors
-        assert "three" in filters.errors
-        assert not filters.valid
+        with pytest.raises(InvalidData) as exc_info:
+            filters.parse(dict(one=1, two=2, three=3))
+        assert "one" in exc_info.value.errors
+        assert "two" in exc_info.value.errors
+        assert "three" in exc_info.value.errors
 
     def test_validity_from_filtertree(self):
         """
@@ -65,8 +65,8 @@ class FilterTreeTests(TestCase):
         filters it contains.
         """
         filters = Filter("one") | Filter("two") | Filter("three")
-        filters = filters.parse(dict())
-        assert filters.valid
+        query = filters.parse(dict())
+        assert_parsed_ok(query)
 
     def test_Optional_combines_well(self):
         """

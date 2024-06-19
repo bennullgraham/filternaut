@@ -1,3 +1,5 @@
+from filternaut.exceptions import InvalidData
+
 try:
     from rest_framework.filters import BaseFilterBackend
     from rest_framework.exceptions import ParseError
@@ -38,24 +40,23 @@ class FilternautBackend(BaseFilterBackend):
         if callable(filters):
             filters = filters(request)
 
-        filters = filters.parse(request.query_params)
+        try:
+            query = filters.parse(request.query_params)
+            return self.is_valid(request, queryset, query)
+        except InvalidData as ex:
+            return self.is_invalid(request, queryset, ex.errors)
 
-        if filters.valid:
-            return self.is_valid(request, queryset, filters)
-        else:
-            return self.is_invalid(request, queryset, filters)
-
-    def is_valid(self, request, queryset, filters):
+    def is_valid(self, request, queryset, query):
         """
-        Apply ``filters`` to ``queryset``. Provided for convenience when
+        Apply Q-object ``query`` to ``queryset``. Provided for convenience when
         subclassing.
         """
-        return queryset.filter(filters.Q)
+        return queryset.filter(query)
 
-    def is_invalid(self, request, queryset, filters):
+    def is_invalid(self, request, queryset, errors):
         """
         Raise a ParseError containing the filter errors. This results in a 400
         Bad Request whose body details those errors. Provided for convenience
         when subclassing.
         """
-        raise ParseError(filters.errors)
+        raise ParseError(errors)

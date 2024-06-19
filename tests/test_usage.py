@@ -20,9 +20,9 @@ class ExtensionTests(TestCase):
                 return int(value) * 2
 
         filter = FieldFilter("integer", field=DoublingField())
-        filter = filter.parse({"integer": 3})
+        query = filter.parse({"integer": 3})
 
-        actual = dict(filter.Q.children)
+        actual = dict(query.children)
         expected = {"integer": 6}
         assert actual == expected
 
@@ -51,7 +51,7 @@ class ExtensionTests(TestCase):
 
         data = QueryDict("field=3&field=6&field=1&field=2")
         filter = BiggestValueFilter("field")
-        filter = filter.parse(data)
-        actual = dict(filter.Q.children)
+        query = filter.parse(data)
+        actual = dict(query.children)
         expected = {"field": 6}
         assert actual == expected
