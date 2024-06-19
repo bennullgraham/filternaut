@@ -1,11 +1,13 @@
 import tempfile
 from unittest import TestCase
+
 import pytest
+from django.forms import CharField, IntegerField
+from django.utils.datastructures import MultiValueDict
 
 import filternaut
-from filternaut.exceptions import InvalidData
-from django.utils.datastructures import MultiValueDict
 from filternaut import Filter, Optional
+from filternaut.exceptions import InvalidData
 from filternaut.filters import (
     CharFilter,
     ChoiceFilter,
@@ -14,8 +16,7 @@ from filternaut.filters import (
     FilePathFilter,
     RegexFilter,
 )
-from tests.util import NopeFilter, flatten_qobj, assert_parsed_ok
-from django.forms import CharField, IntegerField
+from tests.util import NopeFilter, assert_parsed_ok, flatten_qobj
 
 
 class FilterTests(TestCase):

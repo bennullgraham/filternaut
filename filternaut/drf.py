@@ -1,8 +1,8 @@
 from filternaut.exceptions import InvalidData
 
 try:
-    from rest_framework.filters import BaseFilterBackend
     from rest_framework.exceptions import ParseError
+    from rest_framework.filters import BaseFilterBackend
 except ImportError:
     raise ImportError(
         "You must install Django REST Framework (pypi: "

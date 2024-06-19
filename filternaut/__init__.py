@@ -1,12 +1,12 @@
 from copy import deepcopy
+from functools import reduce
 from operator import and_, or_
 
 from django.core.exceptions import ValidationError
-from functools import reduce
 from django.db.models import Q
-from filternaut.exceptions import InvalidData
 
-from filternaut.tree import Tree, Leaf
+from filternaut.exceptions import InvalidData
+from filternaut.tree import Leaf, Tree
 
 
 class FilterTree(Tree):

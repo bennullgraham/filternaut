@@ -23,6 +23,7 @@ from django.forms import (
     TypedChoiceField,
     URLField,
 )
+
 from filternaut import Filter
 
 # note IPAddressField, GenericIPAddressField and TypedMultipleChoiceField are

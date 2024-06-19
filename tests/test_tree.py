@@ -1,11 +1,12 @@
-import pytest
+from functools import reduce
 from operator import and_, or_
 from unittest import TestCase
+
+import pytest
 
 from filternaut import Filter, FilterTree, Optional
 from filternaut.exceptions import InvalidData
 from filternaut.tree import Leaf, Tree
-from functools import reduce
 from tests.util import NopeFilter, assert_parsed_ok
 
 

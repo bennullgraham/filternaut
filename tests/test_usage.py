@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from django.http import QueryDict
 
-from filternaut.filters import Filter, FieldFilter
+from filternaut.filters import FieldFilter, Filter
 
 
 class ExtensionTests(TestCase):

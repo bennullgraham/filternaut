@@ -9,8 +9,8 @@ Finally, there are separate leaf and tree classes. This increases sanity when
 these classes are extended to become filters.
 """
 
-from operator import or_, and_
 from copy import deepcopy
+from operator import and_, or_
 
 
 class Tree(object):

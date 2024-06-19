@@ -1,0 +1,8 @@
+[tool.ruff.lint]
+select = [
+	# enable flake8-logging-format https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+	"G",
+
+	# use ruff's import sorting
+	"I",
+]

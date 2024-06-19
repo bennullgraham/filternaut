@@ -1,5 +1,6 @@
-from setuptools import setup
 from textwrap import dedent
+
+from setuptools import setup
 
 setup(
     name="django-filternaut",

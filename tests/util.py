@@ -1,6 +1,7 @@
-from django.core.exceptions import ValidationError
-import pytest
 from contextlib import contextmanager
+
+import pytest
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from filternaut import Filter

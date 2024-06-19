@@ -18,6 +18,7 @@ import sys
 # --- here be hax ---
 import django
 from django.conf import settings
+
 # hax -- lazy translation-proxies make doctests hard, so monkey patch them into
 # no-ops.
 from django.utils import translation

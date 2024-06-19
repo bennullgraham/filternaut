@@ -3,11 +3,10 @@ import json
 from django.contrib.auth.models import User
 from django.core.handlers.wsgi import WSGIRequest
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 
-from filternaut.filters import CharFilter, ChoiceFilter, EmailFilter
 from filternaut.exceptions import InvalidData
-
+from filternaut.filters import CharFilter, ChoiceFilter, EmailFilter
 
 try:
     from django.test import RequestFactory

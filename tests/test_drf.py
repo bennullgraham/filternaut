@@ -1,12 +1,12 @@
-from django.contrib.auth.models import User
 import mock
+from django.contrib.auth.models import User
 
 from filternaut.filters import EmailFilter
 
-
 try:
     from rest_framework import generics
-    from rest_framework.test import APITestCase, APIRequestFactory
+    from rest_framework.test import APIRequestFactory, APITestCase
+
     from filternaut.drf import FilternautBackend
 except ImportError:
     import pytest

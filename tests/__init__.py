@@ -1,6 +1,5 @@
 from django.conf import settings
 
-
 # set up just enough of Django for testing
 settings.configure(
     MIDDLEWARE_CLASSES=(),
