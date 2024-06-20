@@ -1,3 +1,4 @@
+from collections import defaultdict, namedtuple
 from copy import deepcopy
 from functools import reduce
 from operator import and_, or_
@@ -51,7 +52,71 @@ class FilterTree(Tree):
         return self.operator(left_q, right_q)
 
 
-class Optional(FilterTree):
+class Constraint(FilterTree):
+    """
+    Base class for making collective rules over several filters.
+
+    For example, at least two of the filters must be used, or only one of the
+    filters may be used, etc.
+
+    This class book-keeps which filters were used as it parses the incoming
+    data. Subclasses can use this to decide whether to add or remove errors.
+    """
+
+    tree_class = FilterTree
+
+    FilterUse = namedtuple("FilterUse", "filter,valid,missing")
+
+    def __init__(self, left, *rest):
+        operator = and_  # OR does not make sense with group-require
+        if not rest:
+            # TODO if left is a tree, walk it instead of complaining
+            raise ValueError("Optional has no effect on a single filter")
+        right = reduce(and_, rest)
+        super().__init__(False, operator, left, right)
+
+    def parse(self, data):
+        """
+        Return Q-object for ``data``
+        """
+        filters = list(self)
+        errors = defaultdict(list)
+        query = Q()
+        report = []
+
+        # this is the same as the regular parse(), but with book-keeping to
+        # populate `report`.
+        for filter in filters:
+            try:
+                this_query = filter.parse(data)
+                if this_query:
+                    report.append(self.FilterUse(filter, valid=True, missing=False))
+                else:
+                    report.append(self.FilterUse(filter, valid=None, missing=True))
+                query = self.operator(query, this_query)
+
+            except InvalidData as ex:
+                relevant_errors = ex.errors.get(filter.source, {})
+                # TODO find a less terrible way of determining this
+                is_missing = "This field is required" in relevant_errors
+                report.append(self.FilterUse(filter, valid=False, missing=is_missing))
+                errors.update(ex.errors)
+
+        self.apply_constraint(report, errors)
+        if errors:
+            raise InvalidData(errors)
+
+        return query
+
+    def apply_constraint(self, report, errors):
+        """
+        Subclasses should examine how filters were used in ``report`` and
+        mutate ``errors`` as necessary.
+        """
+        raise NotImplementedError()
+
+
+class Optional(Constraint):
     """
     Filters included underneath Optional have their required=True configuration
     ignored as long as all those filters are missing. If some but not all are
@@ -73,69 +138,40 @@ class Optional(FilterTree):
     isn't necessary; consider adding 'middle name' to the above example.
     """
 
-    tree_class = FilterTree
-
-    def __init__(self, left, *rest):
-        operator = and_  # OR does not make sense with group-require
-        if not rest:
-            # TODO if left is a tree, walk it instead of complaining
-            raise ValueError("Optional has no effect on a single filter")
-        right = reduce(and_, rest)
-        super().__init__(False, operator, left, right)
-
-    def parse(self, data):
-        """
-        Return Q-object for ``data`` per the class docstring.
-
-        This does the same thing as the regular tree's parse() method -- loop
-        the children, combining the queries or errors so they can be returned
-        collectively.
-
-        Before returning the query or raising the errors as usual, there is an
-        additional step. Some errors may be silenced, or an error added, based
-        on book-keeping of 'required' and 'missing' flags during the preceding
-        loop.
-        """
-        filters = list(self)
-        errors = {}
-        query = Q()
-        any_has_value = False
-        required_and_missing = {}
-
-        # this is the same as the regular parse(), but with book-keeping of
-        # any_has_value and required_and_missing
-        for filter in filters:
-            try:
-                this_query = filter.parse(data)
-                if this_query:
-                    any_has_value = True
-                    required_and_missing[filter] = False
-                query = self.operator(query, this_query)
-            except InvalidData as ex:
-                relevant_errors = ex.errors.get(filter.source, {})
-                # TODO find a less terrible way of determining this
-                is_missing = "This field is required" in relevant_errors
-                required_and_missing[filter] = filter.required and is_missing
-                errors.update(ex.errors)
+    def apply_constraint(self, report, errors):
+        valid = [r.filter for r in report if r.valid]
+        triggers = [r.filter for r in report if r.filter.required and r.missing]
 
         # some filters have values, but not all required filters have values.
-        if any_has_value and any(required_and_missing.values()):
-            if "__all__" not in errors:
-                errors["__all__"] = []
-            sources = ", ".join(sorted(f.source for f in filters))
+        if any(valid) and any(triggers):
+            sources = ", ".join(sorted(r.filter.source for r in report))
             errors["__all__"].append(
                 f"If any of {sources} are provided, all must be provided"
             )
 
         else:
-            to_silence = [f for f, r_and_m in required_and_missing.items() if r_and_m]
-            for filter in to_silence:
+            for filter in triggers:
                 del errors[filter.source]
 
-        if errors:
-            raise InvalidData(errors)
 
-        return query
+class OneOf(Constraint):
+    """
+    Only one of the child filters can be used at a time.
+    """
+
+    def apply_constraint(self, report, errors):
+        sources = ", ".join(sorted(r.filter.source for r in report))
+        valid_count = sum(r.valid for r in report)
+        extra_error = None
+
+        if valid_count == 0:
+            errors["__all__"].append(f"One of {sources} must be provided")
+        elif valid_count > 1:
+            errors["__all__"].append(f"Only one of {sources} can be provided")
+        elif valid_count == 1:
+            for r in report:
+                if r.filter.required and r.missing:
+                    del errors[r.filter.source]
 
 
 class Filter(Leaf):
