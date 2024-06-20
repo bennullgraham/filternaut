@@ -28,6 +28,10 @@ class FilterTree(Tree):
         inverted.negate = not self.negate
         return inverted
 
+    def __repr__(self):
+        children = ", ".join(f.source for f in self)
+        return f"<{type(self).__name__} {children}>"
+
     def parse(self, data):
         """
         Ask all filters to look through ``data`` and thereby configure
@@ -213,6 +217,13 @@ class Filter(Leaf):
         inverted = self.copy()
         inverted.negate = not self.negate
         return inverted
+
+    def __repr__(self):
+        cls = type(self)
+        desc = self.source
+        if self.lookups != ["exact"]:
+            desc = desc + "__" + "/".join(self.lookups)
+        return f"<{cls.__name__} {desc}>"
 
     def parse_to_dict(self, data):
         """
