@@ -291,6 +291,9 @@ class Filter(Leaf):
         """
         return value
 
+    def dest_is_many(self, dest):
+        return any(dest.endswith(f"__{x}") for x in self.multivalue_lookups)
+
     def source_dest_pairs(self):
         """
         For each lookup in self.lookups, such as 'contains' or 'lte', combine
@@ -334,7 +337,7 @@ class Filter(Leaf):
         pairs = []
         for source, dest in self.source_dest_pairs():
             try:
-                many = any(dest.endswith(f"__{x}") for x in self.multivalue_lookups)
+                many = self.dest_is_many(dest)
                 value = self.get_source_value(source, data, many)
                 pairs.append((source, value))
             except KeyError:
