@@ -2,7 +2,7 @@ API reference
 -------------
 
 .. autoclass:: filternaut.FilterTree
-  :members: clean, parse
+  :members: parse
 
 .. autoclass:: filternaut.Filter
    :members: tree_class, parse, parse_to_dict, clean
@@ -11,10 +11,10 @@ API reference
    :members: FilterUse, apply_constraint
 
 .. autoclass:: filternaut.Optional
-   :members: .
+   :members: apply_constraint
 
 .. autoclass:: filternaut.OneOf
-   :members: .
+   :members: apply_constraint
 
 .. autoclass:: filternaut.filters.FieldFilter
    :members:
