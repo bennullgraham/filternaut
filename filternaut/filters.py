@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 from django.forms import (
     BooleanField,
     CharField,
@@ -22,10 +20,11 @@ from django.forms import (
     TimeField,
     TypedChoiceField,
     URLField,
+    ValidationError,
 )
 
-from filternaut import Filter
-from filternaut.util import is_listlike
+from filternaut import Filter, InvalidData
+from filternaut.util import is_listlike, ordinal_suffix
 
 # note IPAddressField, GenericIPAddressField and TypedMultipleChoiceField are
 # conditionally imported later in this file; they are not available in all
@@ -76,10 +75,22 @@ class FieldFilter(Filter):
         super().__init__(dest, **kwargs)
 
     def clean(self, value):
-        if is_listlike(value):
-            return type(value)(self.field.clean(v) for v in value)
-        else:
+        if not is_listlike(value):
             return self.field.clean(value)
+
+        cleaned = []
+        for n, v in enumerate(value):
+            try:
+                cleaned.append(self.field.clean(v))
+            except ValidationError as ex:
+                suffix = ordinal_suffix(n + 1)
+                raise ValidationError(
+                    f"Validation error at {n + 1}{suffix} item: {ex.message}"
+                ) from ex
+
+        # use the type of `value` so that arguing a tuple returns a
+        # tuple, list→list, etc.
+        return type(value)(cleaned)
 
 
 # -- mixtures of fieldfilter and django fields requiring additional arguments
