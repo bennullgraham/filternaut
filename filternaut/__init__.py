@@ -35,8 +35,7 @@ class FilterTree(Tree):
 
     def parse(self, data):
         """
-        Ask all filters to look through ``data`` and thereby configure
-        themselves.
+        Have this tree of filters convert ``data`` into a Django Q-object.
         """
         errors = {}
         # do this with two try/except so we can collect errors from both
@@ -70,6 +69,9 @@ class Constraint(FilterTree):
 
     tree_class = FilterTree
 
+    #: Subclasses will receive a ``FilterUse`` for each child filter. This
+    #: should be used to adjust validation as necessary. See
+    #: :py:meth:`Constraint.apply_constraint`.
     FilterUse = namedtuple("FilterUse", "filter,valid,missing")
 
     def __init__(self, left, *rest):
@@ -132,7 +134,7 @@ class Optional(Constraint):
     This is useful for situations where you want to require one field if
     another is present. For example, requiring ``last_name`` if ``first_name``
     is present, but also allowing neither. In this case, you would mark both
-    with required=True, and wrap them in Optional:
+    with required=True, and wrap them in Optional::
 
         Optional(
             Filter('first_name', required=True),
@@ -161,7 +163,14 @@ class Optional(Constraint):
 
 class OneOf(Constraint):
     """
-    Only one of the child filters can be used at a time.
+    Only one of the child filters can be specified at a time. Specifying two or
+    more causes a validation error. Use like so::
+
+        filters = OneOf(
+            Filter("foo"),
+            Filter("bar"),
+            Filter("baz"),
+        )
     """
 
     def apply_constraint(self, report, errors):
@@ -233,15 +242,19 @@ class Filter(Leaf):
         """
         Look through the provided dict-like data for keys which match this
         Filter's source. This includes keys containing lookup affixes such as
-        'contains' or 'lte'.
-
-        A dictionary of values ready to be queried is returned. For example,
+        'contains' or 'lte'::
 
             {"created_date__gte": "2020-01-01..."}
 
-        These can be used with Django's ORM by unpacking into filter(), or you
-        can get a Q object representing the same query by calling parse(data)
-        rather than parse_to_dict(data).
+        If you just want to plug Filternaut into Django's ORM, call
+        :py:meth:`Filter.parse` instead.
+
+        If you can't get Filternaut to do what you want, you might have an
+        easier time post-processing the output of ``parse_to_dict`` and
+        dropping it directly into the ORM's ``filter()`` yourself. Note that
+        this method is only available on individual filters and not on a
+        combination (such as ``Filter("a") & Filter("b")``), so this approach
+        only takes you so far.
         """
         source_pairs = self.source_value_pairs(data)
         dest_pairs, errors = self.dest_value_pairs(source_pairs)
@@ -266,17 +279,18 @@ class Filter(Leaf):
         Return Q-object which can be used with Django ORM.
 
         In the general case this is just Q() wrapped around the output of
-        parse_to_dict(); they are different representations of the same
-        information.
+        :py:meth:`Filter.parse_to_dict`; they are different representations of the same
+        information::
 
             parse_to_dict() -> {"id": 1}
             parse()         -> Q(id=1)
 
         When none-to-isnull conversion is enabled and relevant, this method
-        returns a query which differs slightly from the dict representation:
+        returns a query which differs slightly from the dict representation::
 
             parse_to_dict() -> {"id__in": [1, 2, None]}
             parse()         -> Q(id__in=[1, 2]) | Q(id__isnull=True)
+
         """
         filter_dict = self.parse_to_dict(data)
 

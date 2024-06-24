@@ -1,3 +1,6 @@
 sphinx
+sphinx-press-theme
 django~=5.0
 djangorestframework~=3.15
+
+

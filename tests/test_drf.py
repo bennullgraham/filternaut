@@ -1,4 +1,5 @@
-import mock
+from unittest import mock
+
 from django.contrib.auth.models import User
 
 from filternaut.filters import EmailFilter
@@ -10,25 +11,26 @@ try:
     from filternaut.drf import FilternautBackend
 except ImportError:
     import pytest
+
     pytest.mark.skip(
-        'Django REST Framework must be installed to test DRF integration',
-        allow_module_level=True
+        "Django REST Framework must be installed to test DRF integration",
+        allow_module_level=True,
     )
+
     # without an APITestCase we get a NameError
     class APITestCase:
         pass
 
-class IntegrationTests(APITestCase):
 
+class IntegrationTests(APITestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
-        self.request = self.factory.get('/users/', data={
-            'email': 'user@example.org'})
+        self.request = self.factory.get("/users/", data={"email": "user@example.org"})
 
     def test_backend_requires_filterattr(self):
         class UserView(generics.ListAPIView):
             queryset = User.objects.all()
-            filter_backends = (FilternautBackend, )
+            filter_backends = (FilternautBackend,)
 
         queryset = mock.Mock()
         uv = UserView()
@@ -40,8 +42,8 @@ class IntegrationTests(APITestCase):
     def test_backend_filters_queryset(self):
         class UserView(generics.ListAPIView):
             queryset = User.objects.all()
-            filter_backends = (FilternautBackend, )
-            filternaut_filters = EmailFilter('email')
+            filter_backends = (FilternautBackend,)
+            filternaut_filters = EmailFilter("email")
 
         queryset = mock.Mock()
         uv = UserView()
@@ -53,10 +55,10 @@ class IntegrationTests(APITestCase):
     def test_callable_filterattr(self):
         class UserView(generics.ListAPIView):
             queryset = User.objects.all()
-            filter_backends = (FilternautBackend, )
+            filter_backends = (FilternautBackend,)
 
             def filternaut_filters(self, request):
-                return EmailFilter('email')
+                return EmailFilter("email")
 
         queryset = mock.Mock()
         uv = UserView()

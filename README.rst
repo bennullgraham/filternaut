@@ -3,36 +3,31 @@ Filternaut
 
 Filternaut is a simple library which generates arbitrarily complex Django
 Q-objects from simple data. It fits nicely into situations where users provide
-data which you want to filter a queryset with.
+data which you want to filter a queryset with. For example, if you have an API
+listing and want to let the requester filter that listing with query params,
+Filternaut is the ticket.
 
-Filternaut is indirectly a collection of fields, but it differs from Django
-forms in that you specify the logical relationships between fields, as well
-their names and types.
-
-Filternaut is similar to Django Filters, but does not provide any machinery for
-rendering a user interface and does not inspect your models to autogenerate
-filters. However, Django Filters chains many calls to ``.filter()`` which means
-OR-like behaviour with more than one join. Filternaut supports either
-behaviour.
+Using Filternaut, you put together filters of different types — e.g. a date
+filter and an email filter — and say what their logical relationships are.
 
 Quickstart
 ==========
 
 .. code-block:: python
 
-    # filters are combined using logical operators
+    # first define how you will parse the incoming filters choices.
     filters = (
         DateTimeFilter('created_date', lookups=['lt', 'gt']) &
-        CharFilter('username', lookups=['icontains']))
+        CharFilter('username', lookups=['icontains'])
+    )
 
-    # they can read their values from anything dict-like
-    filters = filters.parse(request.GET)
-
-    # and have a form-like 'validity pattern'.
-    if filters.valid:
-        queryset = queryset.filter(filters.Q)
-    else:
-        raise HttpResponseBadRequest(json.dumps(filters.errors))
+    # then use this to parse anything dict-like. This returns a Django
+    # Q-object for use with the ORM's .filter().
+    try:
+        query = filters.parse(request.GET)
+        return queryset.filter(query)
+    except filternaut.InvalidData as ex:
+        raise HttpResponseBadRequest(ex.errors)
 
 
 Installation

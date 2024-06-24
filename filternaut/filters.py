@@ -65,7 +65,7 @@ class FieldFilter(Filter):
 
     This class is designed to be extended by subclasses which provide their own
     form-field instances. However, you could use it in combination with a
-    custom field like so:
+    custom field like so::
 
         filter = FieldFilter(SpecialField(), dest='...')
     """

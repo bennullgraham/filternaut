@@ -14,6 +14,7 @@ from filternaut.filters import (
     ComboFilter,
     FieldFilter,
     FilePathFilter,
+    IntegerFilter,
     RegexFilter,
 )
 from tests.util import NopeFilter, assert_parsed_ok, flatten_qobj
@@ -478,15 +479,25 @@ def boolean_tests():
 
 class MultiValueWithNoneTests(TestCase):
     def get_output_of_field(self, isnull=False, **data):
-        filter = FieldFilter(
+        # previously you had to pass a required=False field instance into FieldFilter.
+        old_style = FieldFilter(
             "rank",
             lookups="in",
             none_to_isnull=isnull,
             field=IntegerField(required=False),
         )
+        # now you can work with the field variants directly.
+        new_style = IntegerFilter("rank", lookups="in", none_to_isnull=isnull)
+
         data = MultiValueDict(data)
-        query = filter.parse(data)
-        return dict(query.children)
+        old_query = old_style.parse(data)
+        new_query = new_style.parse(data)
+
+        # check both styles produce the same results
+        assert old_query == new_query
+
+        # specific tests make their own assertions with this return value too.
+        return dict(new_query.children)
 
     def test_enabled_with_regular_value(self):
         actual = self.get_output_of_field(rank=["1", "2", "3"], isnull=True)
@@ -509,11 +520,25 @@ class MultiValueWithNoneTests(TestCase):
         assert actual == expected
 
     def test_disabled_with_none_value_and_regulars(self):
-        actual = self.get_output_of_field(rank=["1", "2", "3", ""], isnull=False)
-        expected = {"rank__in": [1, 2, 3, None]}
-        assert actual == expected
+        with pytest.raises(InvalidData) as exc_info:
+            self.get_output_of_field(rank=["1", "2", "3", ""], isnull=False)
+        assert "rank" in exc_info.value.errors
+        assert exc_info.value.errors["rank"] == [
+            "Validation error at 4th item: This field is required."
+        ]
 
     def test_disabled_with_only_none_value(self):
-        actual = self.get_output_of_field(rank=[""], isnull=False)
-        expected = {"rank__in": [None]}
-        assert actual == expected
+        with pytest.raises(InvalidData) as exc_info:
+            self.get_output_of_field(rank=[""], isnull=False)
+        assert "rank" in exc_info.value.errors
+        assert exc_info.value.errors["rank"] == [
+            "Validation error at 1st item: This field is required."
+        ]
+
+    def test_ben(self):
+        source = MultiValueDict({"parent_id__in": [1, 2, None]})
+        filters = filternaut.filters.IntegerFilter(
+            "parent_id", lookups="in", none_to_isnull=True
+        )
+        parsed = filters.parse_to_dict(source)
+        pass

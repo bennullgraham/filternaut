@@ -1,8 +1,13 @@
 coverage
+django
+djangorestframework
+ipdb
 pip-tools
+pytest
 ruff
 sphinx
-sphinx_rtd_theme
+sphinx-autobuild
+sphinx-press-theme
 tox
 twine
 wheel
