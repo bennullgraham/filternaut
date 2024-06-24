@@ -25,6 +25,7 @@ from django.forms import (
 )
 
 from filternaut import Filter
+from filternaut.util import is_listlike
 
 # note IPAddressField, GenericIPAddressField and TypedMultipleChoiceField are
 # conditionally imported later in this file; they are not available in all
@@ -56,13 +57,6 @@ __all__ = [
     "TypedChoiceFilter",
     "URLFilter",
 ]
-
-
-def is_listlike(val):
-    """
-    True if `val` is an iterable (list, tuple, ...) but not a string
-    """
-    return isinstance(val, Iterable) and not isinstance(val, str)
 
 
 class FieldFilter(Filter):

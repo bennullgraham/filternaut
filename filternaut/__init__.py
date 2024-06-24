@@ -8,6 +8,7 @@ from django.db.models import Q
 
 from filternaut.exceptions import InvalidData
 from filternaut.tree import Leaf, Tree
+from filternaut.util import is_listlike
 
 
 class FilterTree(Tree):
