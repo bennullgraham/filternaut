@@ -211,6 +211,9 @@ class Filter(Leaf):
         if isinstance(self.lookups, str):
             self.lookups = self.lookups.split(",")
 
+        if self.none_to_isnull and self.lookups != ["in"]:
+            raise TypeError("When none_to_isnull=True, you must also use lookups='in'")
+
     def __invert__(self):
         """
         Invert the sense of this filter.
@@ -259,30 +262,42 @@ class Filter(Leaf):
         return dict(dest_pairs)
 
     def parse(self, data):
-        dicts = [self.parse_to_dict(data)]
+        """
+        Return Q-object which can be used with Django ORM.
 
-        # Django, via SQL, does not do what you might expect with
-        # .filter(rank__in=[1, 2, None]). This doesn't give you things with
-        # rank 1, 2 or null -- you just get things with rank 1 and 2. Instead
-        # SQL wants you to make an explicit "in or is null" check. For
-        # consistency with Django and SQL, filternaut also behaves this way by
-        # default. If you don't want this behaviour, argue none_to_isnull=True
-        # when making a filter.
-        if self.none_to_isnull:
-            for key, val in list(dicts[0].items()):
-                is_many = key.endswith("__in")
-                has_null = is_many and None in val
-                if is_many and has_null:
-                    lookup = f"{key[:-4]}__isnull"
-                    dicts.append({lookup: True})
-                    val.remove(None)
-                    # if the only value was None, we don't need the "__in" any
-                    # more.
-                    if not val:
-                        dicts[0].pop(key)
+        In the general case this is just Q() wrapped around the output of
+        parse_to_dict(); they are different representations of the same
+        information.
 
-        q = reduce(or_, (Q(**d) for d in dicts))
-        return ~q if self.negate else q
+            parse_to_dict() -> {"id": 1}
+            parse()         -> Q(id=1)
+
+        When none-to-isnull conversion is enabled and relevant, this method
+        returns a query which differs slightly from the dict representation:
+
+            parse_to_dict() -> {"id__in": [1, 2, None]}
+            parse()         -> Q(id__in=[1, 2]) | Q(id__isnull=True)
+        """
+        filter_dict = self.parse_to_dict(data)
+
+        trigger = f"{self.dest}__in"
+        do_isnull_conversion = (
+            self.none_to_isnull
+            and trigger in filter_dict
+            and None in filter_dict[trigger]
+        )
+        if not do_isnull_conversion:
+            # normal case, return Q directly from filter-dict
+            query = Q(**filter_dict)
+            return query
+
+        # when none-to-isnull conversion is active, remove None from __in and
+        # replace by ORing with __isnull=True.
+        filter_dict[trigger] = [v for v in filter_dict[trigger] if v is not None]
+        if not filter_dict[trigger]:
+            filter_dict.pop(trigger)  # vals were all Nones; ditch key entirely
+        isnull_dest = f"{self.dest}__isnull"
+        return Q(**filter_dict) | Q(**{f"{self.dest}__isnull": True})
 
     def clean(self, value):
         """
@@ -358,10 +373,13 @@ class Filter(Leaf):
         for source, value in sourcevalue_pairs:
             try:
                 value = self.clean(value)
-                dest = sourcedest_map[source]
-                pairs.append((dest, value))
             except ValidationError as ex:
                 errors[source] = ex.messages
+                continue
+
+            dest = sourcedest_map[source]
+            pairs.append((dest, value))
+
         return pairs, errors
 
     def default_dest_value_pair(self):

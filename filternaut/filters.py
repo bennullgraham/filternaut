@@ -135,7 +135,12 @@ class ComboFilter(FieldFilter):
 
 class FieldMixin(object):
     def __init__(self, dest, **kwargs):
-        field = self.field_class()
+        # none-to-isnull converts None-values into __isnull=True. We've got to
+        # set required=False on the field to get a None out of it.
+        none_to_isnull = kwargs.get("none_to_isnull", False)
+        field_required = none_to_isnull is False
+        field = self.field_class(required=field_required)
+
         super().__init__(dest, field=field, **kwargs)
 
 
