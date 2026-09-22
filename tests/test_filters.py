@@ -16,6 +16,7 @@ from filternaut.filters import (
     FilePathFilter,
     IntegerFilter,
     RegexFilter,
+    UUIDFilter,
 )
 from tests.util import NopeFilter, assert_parsed_ok, flatten_qobj
 
@@ -288,6 +289,23 @@ class FieldFilterTests(TestCase):
             query = filter.parse({"fieldname": valid})
             assert_parsed_ok(query)
 
+    def test_uuidfilter(self):
+        filter = UUIDFilter("fieldname")
+        invalids = "", "not-a-uuid", "3f2504e0-4f89-11d3-9a0c"
+        valids = (
+            "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+            "3f2504e04f8911d39a0c0305e82c3301",
+        )
+
+        for invalid in invalids:
+            with pytest.raises(InvalidData) as exc_info:
+                filter.parse({"fieldname": invalid})
+            assert "fieldname" in exc_info.value.errors
+
+        for valid in valids:
+            query = filter.parse({"fieldname": valid})
+            assert_parsed_ok(query)
+
     def test_multivaluefilter(self):
         # TODO this field is relatively complex. have not written a test for it
         # yet.
@@ -314,6 +332,7 @@ class FieldFilterTests(TestCase):
             "TimeFilter",
             "TypedChoiceFilter",
             "URLFilter",
+            "UUIDFilter",
             "GenericIPAddressFilter",
             "TypedMultipleChoiceFilter",
         )

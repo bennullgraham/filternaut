@@ -20,6 +20,7 @@ from django.forms import (
     TimeField,
     TypedChoiceField,
     URLField,
+    UUIDField,
     ValidationError,
 )
 
@@ -55,6 +56,7 @@ __all__ = [
     "TimeFilter",
     "TypedChoiceFilter",
     "URLFilter",
+    "UUIDFilter",
 ]
 
 
@@ -206,6 +208,10 @@ class TypedChoiceFilter(FieldMixin, FieldFilter):
 
 class URLFilter(FieldMixin, FieldFilter):
     field_class = URLField
+
+
+class UUIDFilter(FieldMixin, FieldFilter):
+    field_class = UUIDField
 
 
 # -- mixtures of fieldfilter and django fields which were not present in older
