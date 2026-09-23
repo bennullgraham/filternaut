@@ -1,41 +1,11 @@
 import json
 
 from django.contrib.auth.models import User
-from django.core.handlers.wsgi import WSGIRequest
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.test import Client, TestCase
+from django.test import RequestFactory, TestCase
 
 from filternaut.exceptions import InvalidData
 from filternaut.filters import CharFilter, ChoiceFilter, EmailFilter
-
-try:
-    from django.test import RequestFactory
-except ImportError:
-
-    class RequestFactory(Client):
-        """
-        Django 1.2 does not have RequestFactory. credit:
-        https://djangosnippets.org/snippets/963/
-        """
-
-        def request(self, **request):
-            """
-            Similar to parent class, but returns the request object as soon as
-            it has created it.
-            """
-            environ = {
-                "HTTP_COOKIE": self.cookies,
-                "PATH_INFO": "/",
-                "QUERY_STRING": "",
-                "REQUEST_METHOD": "GET",
-                "SCRIPT_NAME": "",
-                "SERVER_NAME": "testserver",
-                "SERVER_PORT": 80,
-                "SERVER_PROTOCOL": "HTTP/1.1",
-            }
-            environ.update(self.defaults)
-            environ.update(request)
-            return WSGIRequest(environ)
 
 
 def user_to_native(user):

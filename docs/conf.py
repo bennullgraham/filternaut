@@ -14,15 +14,10 @@
 
 import os
 import sys
+from importlib.metadata import version as get_version
 
 import django
 from django.conf import settings
-
-# hax -- lazy translation-proxies make doctests hard, so monkey patch them into
-# no-ops.
-from django.utils import translation
-
-translation.ugettext_lazy = lambda s: s
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -55,13 +50,13 @@ copyright = "2024, Ben Graham"
 # built documents.
 #
 # The short X.Y version.
-version = "1.0.1"
+version = get_version("django-filternaut")
 # The full version, including alpha/beta/rc tags.
-release = "1.0.1"
+release = version
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", ".tox"]
+exclude_patterns = ["_build"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "github-dark"
@@ -82,6 +77,7 @@ try:
             "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
         },
         INSTALLED_APPS=("django.contrib.auth", "django.contrib.contenttypes"),
+        USE_TZ=True,  # only necessary for django<5
     )
     django.setup()
 except RuntimeError:

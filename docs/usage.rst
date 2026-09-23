@@ -422,7 +422,7 @@ source data:
    :options: +NORMALIZE_WHITESPACE
 
    SELECT "auth_user"."id", ...
-   WHERE "auth_user"."is_active"
+   WHERE "auth_user"."is_active"...
 
 When a default value is used, lookups are ignored. Most combinations of lookups
 are mutually exclusive when comparing the same value. For example, filtering by
@@ -599,6 +599,7 @@ The full list of field-specific filter classes is:
 - TypedChoiceFilter
 - TypedMultipleChoiceFilter
 - URLFilter
+- UUIDFilter
 
 
 Django REST Framework

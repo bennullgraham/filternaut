@@ -8,3 +8,7 @@ __pycache__
 *.pyc
 .coverage
 Makefile
+/docs/_build
+/.venv
+.pytest_cache
+.ruff_cache

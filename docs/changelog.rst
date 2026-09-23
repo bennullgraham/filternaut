@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.1.0
+------
+
+- Add ``UUIDFilter``.
+- Require Python 3.10+.
+- Add support for Django 6.1 with any compatible Django REST Framework. Djangos
+  4.2 and 5.2 continue to be supported.
+
 1.0.0
 ------
 

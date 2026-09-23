@@ -1,18 +1,38 @@
 name: CI
-on: push
+on:
+  # pushes to master run CI via release.yml instead, which publishes if it passes
+  push:
+    branches-ignore: [master]
+  workflow_call:
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        django: ["~=4.2.0", "~=5.2.0", "~=6.1.0"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install mock pytest django~=4.2 djangorestframework~=3.15
+          enable-cache: true
 
       - name: Test
-        run: pytest
+        # unpinned DRF resolves to the newest release supporting this Django
+        run: uv run --locked --python 3.12 --with "django${{ matrix.django }}" --with djangorestframework pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+
+      - name: Ruff
+        run: |
+          uv run --locked ruff check
+          uv run --locked ruff format --check
+

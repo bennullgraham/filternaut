@@ -1,3 +1,62 @@
+[project]
+name = "django-filternaut"
+version = "1.1.0"
+description = 'Construct arbitrarily complex Django "Q" filters from flat data such as query parameters.'
+readme = "README.rst"
+authors = [{ name = "Ben Graham", email = "bgraham@bgraham.com.au" }]
+requires-python = ">=3.10"
+dependencies = ["django>=4.2"]
+classifiers = [
+	"Development Status :: 5 - Production/Stable",
+	"Environment :: Web Environment",
+	"Intended Audience :: Developers",
+	"License :: OSI Approved :: BSD License",
+	"Operating System :: OS Independent",
+	"Programming Language :: Python",
+	"Programming Language :: Python :: 3",
+	"Topic :: Utilities",
+	"Framework :: Django",
+	"Framework :: Django :: 4.2",
+	"Framework :: Django :: 5.2",
+	"Framework :: Django :: 6.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/bennullgraham/filternaut"
+Documentation = "https://filternaut.readthedocs.org"
+
+[dependency-groups]
+dev = [
+	"coverage",
+	"djangorestframework",
+	"ipdb",
+	"pytest",
+	"pytest-sphinx",
+	"ruff",
+	"sphinx-autobuild",
+	{ include-group = "docs" },
+]
+docs = [
+	"djangorestframework",
+	"sphinx<8",  # sphinx-press-theme breaks on newer versions
+	"sphinx-press-theme",
+]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "filternaut"
+module-root = ""
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "docs"]
+# run the testcode/testoutput examples in docs/ via pytest-sphinx
+addopts = "--doctest-glob=*.rst"
+# match the defaults of Sphinx's doctest builder
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL"
+
 [tool.ruff.lint]
 select = [
 	# enable flake8-logging-format https://docs.astral.sh/ruff/rules/#flake8-logging-format-g

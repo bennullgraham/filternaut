@@ -39,9 +39,31 @@ Installation
 
 Filternaut is compatible with:
 
-- Python 3
-- Django 4.2 and 5.0
-- Django REST Framework 3.15 (optional)
+- Python 3.10+
+- Django 4.2, 5.2 and 6.1
+- Django REST Framework (optional), any release supporting your Django version
+
+Development
+===========
+
+Filternaut uses `uv <https://docs.astral.sh/uv/>`_:
+
+.. code-block:: console
+
+    $ uv sync
+    $ uv run pytest
+    $ uv run ruff check
+
+The test suite includes doctests from docs/.
+
+To test against another Python or Django version, as CI does:
+
+.. code-block:: console
+
+    $ uv run --isolated --python 3.10 pytest
+    $ uv run --isolated --python 3.12 --with "django~=4.2.0" --with djangorestframework pytest
+
+The isolated flag will leave your .venv untouched.
 
 Documentation
 =============
